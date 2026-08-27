@@ -37,7 +37,8 @@ const api = {
   addAlert: (productId, targetPrice) => fetch("/api/alerts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ productId, targetPrice }) }).then(r => r.json()),
   deleteAlert: (id) => fetch(`/api/alerts/${id}`, { method: "DELETE" }).then(r => r.json()),
   analytics: () => fetch("/api/analytics").then(r => r.json()),
-  feedback: (body) => fetch("/api/feedback", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(r => r.json())
+  feedback: (body) => fetch("/api/feedback", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(r => r.json()),
+  exportCSV: () => window.open("/api/analytics/export", "_blank")
 };
 
 function getAppShell(pageKey) {
@@ -333,7 +334,12 @@ function viewAnalytics(data) {
   const byEvent = data.byEvent || {};
   const topSearches = data.topSearches || [];
   const recentEvents = data.recentEvents || [];
-  const feedback = data.feedback || [];
+  const funnel = data.funnel || {};
+  const searchGaps = data.searchGaps || [];
+  const categoryFreq = data.categoryFreq || [];
+  const searchTrend = data.searchTrend || [];
+  const fb = data.feedback || {};
+  const fbList = fb.list || [];
 
   const eventBars = Object.entries(byEvent).sort((a, b) => b[1] - a[1]).map(([name, count]) => {
     const max = Math.max(...Object.values(byEvent));
@@ -352,23 +358,76 @@ function viewAnalytics(data) {
     return `<tr><td style="color:var(--color-text-sub)">${(ev.timestamp||"").slice(11,19)}</td><td>${labelMap[ev.event] || ev.event}</td><td style="color:var(--color-text-sub);font-size:var(--fs-13)">${detail}</td></tr>`;
   }).join("");
 
-  const feedbackList = feedback.length > 0
-    ? feedback.map(f => `<div class="card" style="margin-bottom:12px"><div class="card-body" style="padding:12px 16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span class="tag ${f.type === "bug" ? "tag-danger" : f.type === "complaint" ? "tag-warning" : "tag-primary"}">${f.type === "bug" ? "Bug" : f.type === "complaint" ? "投诉" : "建议"}</span>${f.rating ? `<span style="color:var(--color-warning)">★${f.rating}</span>` : ""}</div><p style="font-size:var(--fs-14);color:var(--color-text)">${f.content}</p>${f.contact ? `<p style="font-size:var(--fs-12);color:var(--color-text-disabled);margin-top:4px">联系方式：${f.contact}</p>` : ""}</div></div>`).join("")
+  const funnelSteps = [
+    { label: "页面浏览", count: funnel.pageView || 0, rate: "—" },
+    { label: "AI搜索", count: funnel.search || 0, rate: funnel.searchRate + "%" },
+    { label: "查看比价", count: funnel.compare || 0, rate: funnel.compareRate + "%" },
+    { label: "设置提醒", count: funnel.alert || 0, rate: funnel.alertRate + "%" }
+  ];
+  const funnelMax = Math.max(...funnelSteps.map(f => f.count), 1);
+  const funnelHTML = funnelSteps.map(f => {
+    const pct = Math.round(f.count / funnelMax * 100);
+    const barColor = f.label === "设置提醒" ? "#52c41a" : f.label === "查看比价" ? "#1677ff" : f.label === "AI搜索" ? "#722ed1" : "#8c8c8c";
+    return `<div class="funnel-step">
+      <div class="funnel-bar" style="width:${pct}%;background:${barColor}">
+        <span class="funnel-count">${f.count}</span>
+      </div>
+      <div class="funnel-info"><span class="funnel-label">${f.label}</span><span class="funnel-rate">${f.rate}</span></div>
+    </div>`;
+  }).join("");
+
+  const gapHTML = searchGaps.length > 0
+    ? searchGaps.map(g => `<div class="gap-item"><span class="tag tag-warning">无匹配</span><span style="font-size:var(--fs-13)">${g.query}</span>${g.category ? `<span class="tag" style="background:var(--color-fill-tertiary);color:var(--color-text-sub)">${g.category}</span>` : ""}<span style="font-size:var(--fs-12);color:var(--color-text-disabled)">${(g.time||"").slice(0,16)}</span></div>`).join("")
+    : `<div class="empty-state"><div class="desc">暂无搜索缺口</div></div>`;
+
+  const catBars = categoryFreq.length > 0
+    ? categoryFreq.map(c => {
+      const max = Math.max(...categoryFreq.map(x => x.count));
+      const pct = Math.round(c.count / max * 100);
+      return `<div class="bar-row"><span class="bar-label">${c.category}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:#722ed1"></div></div><span class="bar-val">${c.count}</span></div>`;
+    }).join("")
+    : `<span style="color:var(--color-text-disabled);font-size:var(--fs-13)">暂无品类数据</span>`;
+
+  const trendMax = Math.max(...searchTrend.map(t => t[1]), 1);
+  const trendBars = searchTrend.map(t => {
+    const pct = Math.round(t[1] / trendMax * 100);
+    const label = t[0].slice(5);
+    return `<div class="trend-col"><div class="trend-bar" style="height:${pct}%" title="${t[0]}: ${t[1]}次"></div><span class="trend-label">${label}</span></div>`;
+  }).join("");
+
+  const fbByType = fb.byType || {};
+  const fbTypeTags = Object.entries(fbByType).map(([type, count]) => {
+    const label = type === "bug" ? "Bug" : type === "complaint" ? "投诉" : "建议";
+    const cls = type === "bug" ? "tag-danger" : type === "complaint" ? "tag-warning" : "tag-primary";
+    return `<span class="tag ${cls}">${label} ×${count}</span>`;
+  }).join("");
+
+  const feedbackList = fbList.length > 0
+    ? fbList.map(f => `<div class="card" style="margin-bottom:12px"><div class="card-body" style="padding:12px 16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span class="tag ${f.type === "bug" ? "tag-danger" : f.type === "complaint" ? "tag-warning" : "tag-primary"}">${f.type === "bug" ? "Bug" : f.type === "complaint" ? "投诉" : "建议"}</span>${f.rating ? `<span style="color:var(--color-warning)">★${f.rating}</span>` : ""}</div><p style="font-size:var(--fs-14);color:var(--color-text)">${f.content}</p>${f.contact ? `<p style="font-size:var(--fs-12);color:var(--color-text-disabled);margin-top:4px">联系方式：${f.contact}</p>` : ""}</div></div>`).join("")
     : `<div class="empty-state"><div class="desc">暂无用户反馈</div></div>`;
 
   return `
-    <div class="grid-4" style="margin-bottom:var(--spacing-4)">
-      <div class="card stat-card"><div class="card-body"><div style="font-size:var(--fs-12);color:var(--color-text-sub)">总事件数</div><div style="font-size:var(--fs-24);font-weight:700">${s.totalEvents || 0}</div></div></div>
-      <div class="card stat-card"><div class="card-body"><div style="font-size:var(--fs-12);color:var(--color-text-sub)">会话数</div><div style="font-size:var(--fs-24);font-weight:700">${s.totalSessions || 1}</div></div></div>
-      <div class="card stat-card"><div class="card-body"><div style="font-size:var(--fs-12);color:var(--color-text-sub)">运行时长</div><div style="font-size:var(--fs-24);font-weight:700">${Math.floor((s.uptime || 0) / 60)}<span style="font-size:var(--fs-14);font-weight:400">分</span></div></div></div>
-      <div class="card stat-card"><div class="card-body"><div style="font-size:var(--fs-12);color:var(--color-text-sub)">反馈数</div><div style="font-size:var(--fs-24);font-weight:700">${s.feedbackCount || 0}</div></div></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--spacing-4)">
+      <div class="grid-4" style="flex:1;margin-bottom:0">
+        <div class="card stat-card"><div class="card-body"><div style="font-size:var(--fs-12);color:var(--color-text-sub)">总事件数</div><div style="font-size:var(--fs-24);font-weight:700">${s.totalEvents || 0}</div></div></div>
+        <div class="card stat-card"><div class="card-body"><div style="font-size:var(--fs-12);color:var(--color-text-sub)">会话数</div><div style="font-size:var(--fs-24);font-weight:700">${s.totalSessions || 1}</div></div></div>
+        <div class="card stat-card"><div class="card-body"><div style="font-size:var(--fs-12);color:var(--color-text-sub)">平均评分</div><div style="font-size:var(--fs-24);font-weight:700">${s.avgRating || "—"}<span style="font-size:var(--fs-14);font-weight:400">★</span></div></div></div>
+        <div class="card stat-card"><div class="card-body"><div style="font-size:var(--fs-12);color:var(--color-text-sub)">反馈数</div><div style="font-size:var(--fs-24);font-weight:700">${s.feedbackCount || 0}</div></div></div>
+      </div>
+      <button class="btn btn-sm" onclick="api.exportCSV()" style="margin-left:12px;white-space:nowrap">导出CSV</button>
     </div>
+    <div class="card" style="margin-bottom:var(--spacing-4)"><div class="card-header"><span class="card-title" style="font-size:var(--fs-14)">转化漏斗</span></div><div class="card-body"><div class="funnel">${funnelHTML}</div></div></div>
     <div class="grid-2" style="margin-bottom:var(--spacing-4)">
       <div class="card"><div class="card-header"><span class="card-title" style="font-size:var(--fs-14)">事件分布</span></div><div class="card-body">${eventBars || '<div class="empty-state"><div class="desc">暂无数据</div></div>'}</div></div>
       <div class="card"><div class="card-header"><span class="card-title" style="font-size:var(--fs-14)">热门搜索词</span></div><div class="card-body"><div style="display:flex;flex-wrap:wrap;gap:8px">${searchTags}</div></div></div>
     </div>
+    <div class="grid-2" style="margin-bottom:var(--spacing-4)">
+      <div class="card"><div class="card-header"><span class="card-title" style="font-size:var(--fs-14)">搜索缺口（无匹配结果）</span></div><div class="card-body"><div class="gap-list">${gapHTML}</div></div></div>
+      <div class="card"><div class="card-header"><span class="card-title" style="font-size:var(--fs-14)">品类搜索频率</span></div><div class="card-body">${catBars}</div></div>
+    </div>
+    ${searchTrend.length > 0 ? `<div class="card" style="margin-bottom:var(--spacing-4)"><div class="card-header"><span class="card-title" style="font-size:var(--fs-14)">搜索趋势（近14天）</span></div><div class="card-body"><div class="trend-chart">${trendBars}</div></div></div>` : ""}
     <div class="card" style="margin-bottom:var(--spacing-4)"><div class="card-header"><span class="card-title" style="font-size:var(--fs-14)">最近事件流</span></div><div class="card-body" style="padding:0">${recentEvents.length > 0 ? `<table class="data-table"><thead><tr><th style="width:80px">时间</th><th style="width:120px">事件</th><th>详情</th></tr></thead><tbody>${eventList}</tbody></table>` : '<div class="empty-state"><div class="desc">暂无事件</div></div>'}</div></div>
-    <div class="card"><div class="card-header"><span class="card-title" style="font-size:var(--fs-14)">用户反馈</span><button class="btn btn-primary btn-sm" onclick="openFeedbackModal()">${ICONS["plus"]}<span>提交反馈</span></button></div><div class="card-body">${feedbackList}</div></div>`;
+    <div class="card"><div class="card-header"><div style="display:flex;align-items:center;gap:8px"><span class="card-title" style="font-size:var(--fs-14)">用户反馈</span>${fbTypeTags}${fb.avgRating ? `<span style="color:var(--color-warning);font-size:var(--fs-13)">均分 ${fb.avgRating}★</span>` : ""}${fb.open ? `<span class="tag" style="background:var(--color-fill-tertiary);color:var(--color-text-sub)">${fb.open} 待处理</span>` : ""}</div><button class="btn btn-primary btn-sm" onclick="openFeedbackModal()">${ICONS["plus"]}<span>提交反馈</span></button></div><div class="card-body">${feedbackList}</div></div>`;
 }
 
 /* ===== 反馈弹窗 ===== */

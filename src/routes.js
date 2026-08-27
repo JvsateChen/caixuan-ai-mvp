@@ -128,6 +128,17 @@ async function handle(req, res, url) {
     return send(res, 200, Tracker.getAnalytics());
   }
 
+  // 埋点数据 CSV 导出
+  if (p === "/api/analytics/export" && method === "GET") {
+    const csv = Tracker.exportCSV();
+    res.writeHead(200, {
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": "attachment; filename=analytics.csv"
+    });
+    res.end("\ufeff" + csv);
+    return true;
+  }
+
   return false;
 }
 
