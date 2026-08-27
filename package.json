@@ -1,0 +1,12 @@
+{
+  "name": "caixuan-ai-mvp",
+  "version": "0.1.0",
+  "description": "采选AI - 标品中立比价助手 MVP（零依赖，node server.js 直接启动）",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": { "node": ">=18" }
+}
