@@ -11,12 +11,14 @@ import type { ToastConfig, ToastType } from '@/lib/types';
 export interface ToastItem extends Required<Omit<ToastConfig, 'retryFn'>> {
   id: string;
   retryFn: (() => void) | null;
+  retry?: () => void;
 }
 
 interface ToastState {
   toasts: ToastItem[];
   show: (config: ToastConfig) => string;
   remove: (id: string) => void;
+  clear: () => void;
   error: (title: string, message: string, retryFn?: (() => void) | null) => string;
   success: (title: string, message?: string) => string;
   warning: (title: string, message?: string) => string;
@@ -31,13 +33,15 @@ export const useToastStore = create<ToastState>((set, get) => ({
 
   show: (config) => {
     const id = nextId();
+    const retryFn = config.retryFn ?? null;
     const item: ToastItem = {
       id,
       type: config.type ?? 'info',
       title: config.title,
       message: config.message ?? '',
       duration: config.duration ?? 3500,
-      retryFn: config.retryFn ?? null,
+      retryFn,
+      retry: retryFn ?? undefined,
     };
     set((s) => ({ toasts: [...s.toasts, item] }));
     if (item.duration > 0) {
@@ -48,6 +52,8 @@ export const useToastStore = create<ToastState>((set, get) => ({
 
   remove: (id) =>
     set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
+
+  clear: () => set({ toasts: [] }),
 
   error: (title, message, retryFn = null) =>
     get().show({ type: 'error', title, message, duration: 6000, retryFn }),

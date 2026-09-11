@@ -1,6 +1,8 @@
-/* 周报复盘 — 切换为真实 DB 查询 */
-import { NextResponse } from 'next/server';
+/* 周报复盘 — 查询 + 手动生成 */
+import { NextRequest, NextResponse } from 'next/server';
 import { getWeeklyReview } from '@/lib/db/queries';
+import { generateWeeklyReview, getLatestWeeklyReview } from '@/services/weeklyReview';
+import { getCurrentUser } from '@/lib/auth';
 import { mockApi } from '@/lib/apiHelpers';
 
 export async function GET() {
@@ -9,4 +11,16 @@ export async function GET() {
     return mockApi(null, { minDelay: 300, maxDelay: 600, failRate: 0 });
   }
   return mockApi(review, { minDelay: 300, maxDelay: 600, failRate: 0.05 });
+}
+
+/** 手动触发生成周报 */
+export async function POST(req: NextRequest) {
+  const user = getCurrentUser(req as any);
+  const userId = user?.id;
+
+  const review = generateWeeklyReview(userId);
+  if (!review) {
+    return NextResponse.json({ code: 500, message: '生成失败' }, { status: 500 });
+  }
+  return NextResponse.json({ success: true, review });
 }

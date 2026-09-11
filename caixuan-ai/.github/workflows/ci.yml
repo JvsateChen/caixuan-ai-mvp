@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'trae/**']
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: caixuan-ai/package-lock.json
+
+      - name: Install dependencies
+        working-directory: caixuan-ai
+        run: npm ci --legacy-peer-deps
+
+      - name: Run tests
+        working-directory: caixuan-ai
+        run: npx vitest run
+        env:
+          DATABASE_URL: 'file:./test.db'
+
+      - name: Build
+        working-directory: caixuan-ai
+        run: npx next build
+        env:
+          DATABASE_URL: 'file:./test.db'
+          NEXTAUTH_SECRET: 'ci-test-secret'
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: build-output
+          path: caixuan-ai/.next/
+          retention-days: 3

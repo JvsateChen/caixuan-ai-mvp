@@ -1,0 +1,15 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "installCommand": "npm install --legacy-peer-deps",
+  "crons": [
+    {
+      "path": "/api/cron/price-check",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/weekly-review",
+      "schedule": "0 8 * * 0"
+    }
+  ]
+}

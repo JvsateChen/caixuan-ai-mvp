@@ -118,4 +118,43 @@ export const api = {
       )}&targetPrice=${targetPrice}`,
     );
   },
+
+  /** 看板汇总 (一次请求获取全部看板数据) */
+  getDashboardSummary(): Promise<any> {
+    return apiFetch<any>('/api/dashboard/summary');
+  },
+
+  /** 用户通知列表 */
+  getNotifications(onlyUnread = false): Promise<any[]> {
+    return apiFetch<any[]>(`/api/notifications${onlyUnread ? '?unread=true' : ''}`);
+  },
+
+  /** 标记通知为已读 */
+  markNotificationRead(id: string): Promise<any> {
+    return apiFetch<any>(`/api/notifications/${encodeURIComponent(id)}/read`, { method: 'PATCH' });
+  },
+
+  /** 创建监控目标 */
+  createMonitoringTarget(data: {
+    productId: string;
+    productName: string;
+    targetPrice: number;
+    platform?: string;
+  }): Promise<any> {
+    return apiFetch<any>('/api/monitoring-targets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  },
+
+  /** 删除监控目标 */
+  deleteMonitoringTarget(id: string): Promise<any> {
+    return apiFetch<any>(`/api/monitoring-targets/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  },
+
+  /** 手动生成周报 */
+  generateWeeklyReview(): Promise<any> {
+    return apiFetch<any>('/api/weekly-review', { method: 'POST' });
+  },
 };
