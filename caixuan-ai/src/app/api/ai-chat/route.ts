@@ -1,31 +1,27 @@
-import { db } from '@/lib/mockData';
+/* AI 对话比价 — 切换为真实 DB + LLM 服务 */
+import { NextRequest, NextResponse } from 'next/server';
+import { aiChat } from '@/services/llm';
 import { mockApi } from '@/lib/apiHelpers';
-import type { AiChatResponse } from '@/lib/types';
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const query = (searchParams.get('q') ?? '').trim();
 
-  const lower = query.toLowerCase();
-  const matched = db.products.filter(
-    (p) =>
-      p.name.toLowerCase().includes(lower) ||
-      p.brand.toLowerCase().includes(lower) ||
-      query.includes(p.brand),
-  );
-  const results = matched.length > 0 ? matched : db.products.slice(0, 3);
+  if (!query) {
+    return NextResponse.json(
+      { code: 400, message: '请输入搜索词' },
+      { status: 400 },
+    );
+  }
 
-  const payload: AiChatResponse = {
-    query,
-    parsed: { brand: '', model: '', category: '' },
-    results,
-    total: results.length,
-  };
-
-  // AI对话延迟更长(800-1300ms),失败率更低(8%)
-  return mockApi(payload, {
-    minDelay: 800,
-    maxDelay: 1300,
-    failRate: 0.08,
-  });
+  try {
+    const result = await aiChat(query);
+    // AI对话延迟 (800-1300ms), 失败率 8%
+    return mockApi(result, { minDelay: 800, maxDelay: 1300, failRate: 0.08 });
+  } catch (err) {
+    return NextResponse.json(
+      { code: 500, message: 'AI对话服务异常' },
+      { status: 500 },
+    );
+  }
 }

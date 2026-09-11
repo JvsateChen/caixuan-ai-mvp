@@ -17,9 +17,24 @@ import type {
   ApiError,
 } from './types';
 
-/** 基础 fetch,统一错误处理 */
-async function apiFetch<T>(url: string): Promise<T> {
-  const res = await fetch(url);
+/** 获取 auth token (从 cookie) */
+function getAuthToken(): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(/caixuan-token=([^;]+)/);
+  return match ? match[1] : null;
+}
+
+/** 基础 fetch,统一错误处理, 自动携带 auth header */
+async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
+  const token = getAuthToken();
+  const headers: Record<string, string> = {
+    ...(options?.headers as Record<string, string>),
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(url, { ...options, headers });
   if (!res.ok) {
     let err: ApiError;
     try {

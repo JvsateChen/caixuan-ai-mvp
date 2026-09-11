@@ -63,20 +63,39 @@ export default function LoginPage() {
   }, [tab, router, toast]);
 
   // 发送验证码
-  const sendCode = () => {
-    if (!/^1\d{10}$/.test(phone)) {
-      toast.warning('手机号格式错误', '请输入11位手机号');
+  const sendCode = async () => {
+    if (!/^1[3-9]\d{9}$/.test(phone)) {
+      toast.warning('手机号格式错误', '请输入正确的11位手机号');
       return;
     }
     if (countdown > 0) return;
-    toast.success('验证码已发送', '验证码 6 位, 5 分钟内有效');
-    setCountdown(60);
+    try {
+      const res = await fetch('/api/auth/sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error('发送失败', data.message || '请稍后重试');
+        return;
+      }
+      // 开发模式: 显示验证码
+      if (data.devCode) {
+        toast.success('验证码已发送', `开发模式验证码: ${data.devCode}`);
+      } else {
+        toast.success('验证码已发送', '验证码 6 位, 5 分钟内有效');
+      }
+      setCountdown(60);
+    } catch {
+      toast.error('发送失败', '网络异常, 请稍后重试');
+    }
   };
 
   // 手机号登录
   const onPhoneLogin = async () => {
-    if (!/^1\d{10}$/.test(phone)) {
-      toast.warning('手机号格式错误', '请输入11位手机号');
+    if (!/^1[3-9]\d{9}$/.test(phone)) {
+      toast.warning('手机号格式错误', '请输入正确的11位手机号');
       return;
     }
     if (code.length !== 6) {
@@ -88,10 +107,28 @@ export default function LoginPage() {
       return;
     }
     setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 600));
-    setSubmitting(false);
-    toast.success('登录成功', '欢迎回到采选AI');
-    router.push('/');
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, code }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error('登录失败', data.message || '请稍后重试');
+        return;
+      }
+      // 保存 token 到 cookie
+      document.cookie = `caixuan-token=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}`;
+      // 保存用户信息到 localStorage
+      localStorage.setItem('caixuan-user', JSON.stringify(data.user));
+      toast.success('登录成功', `欢迎回来, ${data.user.nickname}`);
+      router.push('/');
+    } catch {
+      toast.error('登录失败', '网络异常, 请稍后重试');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // 刷新二维码
