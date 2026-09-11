@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>采选AI · 企业采购管理台</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  /* ---- Enterprise info bar ---- */
+  .enterprise-bar {
+    max-width: 1280px; margin: 16px auto 0;
+    padding: 12px 20px;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: var(--r-md);
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 0.85rem;
+    box-shadow: var(--shadow-sm);
+  }
+  .ent-left { display: flex; align-items: center; gap: 10px; }
+  .ent-left .ent-icon { color: var(--brand-1); display: inline-flex; }
+  .ent-name { font-weight: 600; color: var(--ink); }
+  .ent-right { display: flex; align-items: center; gap: 28px; color: var(--muted); }
+  .ent-right strong { color: var(--ink); font-weight: 600; }
+  .ent-admin { display: inline-flex; align-items: center; gap: 6px; }
+
+  /* ---- Stat card unit suffix ---- */
+  .stat-unit { font-size: 0.85rem; color: var(--muted); font-weight: 500; margin-left: 2px; }
+
+  /* ---- Platform dot ---- */
+  .platform-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block; margin-right: 5px; vertical-align: middle;
+  }
+
+  /* ---- Trend chart ---- */
+  .trend-chart svg { width: 100%; display: block; }
+  .trend-footer { display: flex; gap: 32px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--rule); }
+  .trend-footer .mini-stat { display: flex; flex-direction: column; gap: 4px; }
+  .trend-footer .mini-val { font-size: 1.15rem; font-weight: 700; font-family: var(--mono); }
+  .trend-footer .mini-label { font-size: 0.78rem; color: var(--muted); }
+
+  /* ---- Star rating ---- */
+  .star-row { display: inline-flex; align-items: center; gap: 2px; vertical-align: middle; }
+  .star-row svg { display: block; }
+  .star-text { font-size: 0.78rem; color: var(--muted); margin-left: 4px; vertical-align: middle; }
+
+  /* ---- Misc helpers ---- */
+  .align-center { align-items: center; }
+  .ent-right .ent-divider { width: 1px; height: 16px; background: var(--rule); }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <!-- ============ Shared Topbar ============ -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <a href="index.html" class="logo">
+        <span class="logo-mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18l-2 12H5L3 3z"/><path d="M3 3l1.5-2h15L21 3"/><circle cx="9" cy="20" r="1"/><circle cx="17" cy="20" r="1"/></svg></span>
+        采选AI
+      </a>
+    </div>
+    <nav class="topbar-nav">
+      <a href="index.html" class="nav-link">AI比价</a>
+      <a href="dashboard.html" class="nav-link">我的看板</a>
+      <a href="admin.html" class="nav-link active">企业采购</a>
+    </nav>
+    <div class="topbar-right">
+      <button class="icon-btn" id="bellBtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="badge-dot"></span></button>
+      <a href="profile.html" class="avatar" style="text-decoration:none">CX</a>
+    </div>
+  </header>
+
+  <!-- ============ Region 0: Enterprise info bar ============ -->
+  <div class="enterprise-bar">
+    <div class="ent-left">
+      <span class="ent-icon" data-icon="building" data-size="18"></span>
+      <span class="ent-name">采选科技有限公司</span>
+      <span class="badge badge-brand">企业版</span>
+    </div>
+    <div class="ent-right">
+      <span>本月采购额 <strong id="entSpend" class="font-mono">--</strong></span>
+      <span>合作供应商 <strong id="entSuppliers">--</strong> 家</span>
+      <span class="ent-admin">
+        <span class="avatar" style="width:24px;height:24px;font-size:.68rem">AD</span>
+        管理员 · 张明
+      </span>
+    </div>
+  </div>
+
+  <!-- ============ Main ============ -->
+  <main class="main-content">
+    <div class="layout-with-sidebar">
+      <!-- ---- Sidebar ---- -->
+      <aside class="sidebar">
+        <div class="sidebar-section">采购管理</div>
+        <div class="sidebar-item active" data-scroll="region-stats"><span class="si-text">数据看板</span></div>
+        <div class="sidebar-item" data-scroll="region-orders"><span class="si-text">采购订单</span></div>
+        <div class="sidebar-item" data-scroll="region-supplier"><span class="si-text">供应商对比</span></div>
+        <div class="sidebar-item" data-scroll="region-charts"><span class="si-text">支出分析</span></div>
+        <hr class="divider">
+        <div class="sidebar-section">系统</div>
+        <div class="sidebar-item" data-action="org"><span class="si-text">组织管理</span></div>
+        <div class="sidebar-item" data-action="settings"><span class="si-text">系统设置</span></div>
+      </aside>
+
+      <!-- ---- Content ---- -->
+      <div class="sidebar-content">
+        <!-- Region 1: Page header -->
+        <div class="section-header" id="region-stats" style="margin-bottom: 24px;">
+          <div>
+            <h1 class="page-title">采购数据看板</h1>
+            <div class="page-subtitle" style="margin-bottom: 0;">2026年9月 采购支出分析</div>
+          </div>
+          <div class="flex gap-sm align-center">
+            <button class="btn btn-outline" id="dateBtn">
+              <span data-icon="calendar" data-size="16"></span>2026年9月
+              <span data-icon="chevronDown" data-size="14"></span>
+            </button>
+            <button class="btn btn-outline" id="exportBtn">
+              <span data-icon="download" data-size="16"></span>导出报表
+            </button>
+          </div>
+        </div>
+
+        <!-- Region 2: Purchase overview stats -->
+        <div id="statsGrid" class="grid grid-4 mb-lg"></div>
+
+        <!-- Region 3: Spend category + trend -->
+        <div class="grid grid-2 mb-lg" id="region-charts">
+          <div class="card" id="categoryCard">
+            <div class="card-header">
+              <div class="card-title">采购支出分类</div>
+            </div>
+            <div id="categoryBody"></div>
+          </div>
+          <div class="card" id="trendCard">
+            <div class="card-header">
+              <div class="card-title">支出趋势</div>
+              <div class="badge badge-success" id="trendBadge"></div>
+            </div>
+            <div id="trendBody"></div>
+          </div>
+        </div>
+
+        <!-- Region 4: Supplier compare -->
+        <div class="card mb-lg" id="region-supplier">
+          <div class="card-header">
+            <div class="card-title">供应商对比</div>
+            <a class="link-more" href="javascript:void(0)" data-action="view-all-suppliers">查看全部</a>
+          </div>
+          <div id="supplierBody"></div>
+        </div>
+
+        <!-- Region 5: Recent orders -->
+        <div class="card" id="region-orders">
+          <div class="card-header">
+            <div class="card-title">最近采购订单</div>
+            <a class="link-more" href="javascript:void(0)" data-action="view-all-orders">查看全部</a>
+          </div>
+          <div id="ordersBody"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="app.js"></script>
+<script>
+/* ============================================================
+   admin.html · 企业采购管理台 页面逻辑
+   骨架屏 → API → 渲染 → Toast重试
+   ============================================================ */
+
+/* ---- Render static icons (data-icon attribute) ---- */
+function renderDataIcons() {
+  document.querySelectorAll('[data-icon]').forEach(el => {
+    const name = el.dataset.icon;
+    const size = parseInt(el.dataset.size) || 16;
+    if (Icon[name]) el.innerHTML = Icon[name](size);
+  });
+}
+
+/* ---- Render sidebar icons ---- */
+function renderSidebarIcons() {
+  const iconMap = {
+    '数据看板': 'dashboard', '采购订单': 'package',
+    '供应商对比': 'store', '支出分析': 'chartBar',
+    '组织管理': 'building', '系统设置': 'settings'
+  };
+  document.querySelectorAll('.sidebar-item').forEach(item => {
+    const labelEl = item.querySelector('.si-text');
+    if (!labelEl) return;
+    const iconKey = iconMap[labelEl.textContent.trim()];
+    if (iconKey) {
+      item.insertAdjacentHTML('afterbegin', Icon[iconKey](18));
+    }
+  });
+}
+
+/* ---- Sidebar scroll navigation ---- */
+document.querySelectorAll('.sidebar-item[data-scroll]').forEach(item => {
+  item.addEventListener('click', () => {
+    const target = document.getElementById(item.dataset.scroll);
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.querySelectorAll('.sidebar-item').forEach(s => s.classList.remove('active'));
+    item.classList.add('active');
+  });
+});
+
+/* ---- Star rating renderer ---- */
+function renderStars(rating) {
+  const rounded = Math.round(rating);
+  let html = '<span class="star-row">';
+  for (let i = 0; i < 5; i++) {
+    const filled = i < rounded;
+    const color = filled ? '#f59e0b' : '#e2e8f0';
+    const stroke = filled ? '#d97706' : '#cbd5e1';
+    html += `<svg width="14" height="14" viewBox="0 0 24 24" fill="${color}" stroke="${stroke}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
+  }
+  html += `</span><span class="star-text">${rating.toFixed(1)}</span>`;
+  return html;
+}
+
+/* ---- Custom trend chart (responsive SVG) ---- */
+function renderTrendChart(data, labels, color = '#4f46e5') {
+  const w = 600, h = 180;
+  const pad = { top: 20, right: 20, bottom: 30, left: 60 };
+  const cw = w - pad.left - pad.right;
+  const ch = h - pad.top - pad.bottom;
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const step = cw / (data.length - 1);
+  const xScale = i => pad.left + i * step;
+  const yScale = v => pad.top + ch - ((v - min) / range) * ch;
+
+  /* Grid lines + Y labels */
+  let grid = '';
+  for (let i = 0; i <= 4; i++) {
+    const val = min + (range / 4) * (4 - i);
+    const y = pad.top + (ch / 4) * i;
+    grid += `<line x1="${pad.left}" y1="${y}" x2="${pad.left + cw}" y2="${y}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="2,3"/>`;
+    grid += `<text x="${pad.left - 8}" y="${y + 4}" text-anchor="end" font-size="10" fill="#94a3b8" font-family="monospace">¥${(val/10000).toFixed(0)}万</text>`;
+  }
+
+  /* Area + Line */
+  const pts = data.map((v, i) => `${xScale(i)},${yScale(v)}`).join(' ');
+  const areaPts = `${xScale(0)},${pad.top + ch} ${pts} ${xScale(data.length-1)},${pad.top + ch}`;
+
+  /* Points + last value label */
+  let dots = '';
+  data.forEach((v, i) => {
+    const isLast = i === data.length - 1;
+    dots += `<circle cx="${xScale(i)}" cy="${yScale(v)}" r="${isLast ? 5 : 3}" fill="${color}"/>`;
+    if (isLast) {
+      dots += `<text x="${xScale(i)}" y="${yScale(v) - 14}" text-anchor="middle" font-size="11" fill="${color}" font-weight="700" font-family="monospace">¥${(v/10000).toFixed(1)}万</text>`;
+    }
+  });
+
+  /* X labels */
+  let xLabels = '';
+  labels.forEach((label, i) => {
+    xLabels += `<text x="${xScale(i)}" y="${pad.top + ch + 18}" text-anchor="middle" font-size="10" fill="#94a3b8">${label}</text>`;
+  });
+
+  return `<div class="trend-chart"><svg viewBox="0 0 ${w} ${h}" style="max-height:${h}px">
+    ${grid}
+    <polygon points="${areaPts}" fill="${color}" opacity="0.1"/>
+    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+    ${dots}
+    ${xLabels}
+  </svg></div>`;
+}
+
+/* ---- Generate simulated monthly trend from current spend ---- */
+function generateMonthlyTrend(currentSpend) {
+  const months = 6;
+  const data = [];
+  for (let i = 0; i < months - 1; i++) {
+    const factor = 0.72 + (i / (months - 2)) * 0.26;
+    data.push(Math.round(currentSpend * factor));
+  }
+  data.push(currentSpend);
+  return data;
+}
+
+/* ============================================================
+   Region 2: Purchase overview stats
+   ============================================================ */
+function renderStats(stats, pendingCount) {
+  const grid = document.getElementById('statsGrid');
+  grid.innerHTML = `
+    <div class="stat-card">
+      <div class="stat-icon" style="background:rgba(79,70,229,.1);color:var(--brand-1)">${Icon.wallet(20)}</div>
+      <div class="stat-value">${Utils.formatPrice(stats.monthlySpend)}</div>
+      <div class="stat-label">本月采购额</div>
+      <div class="stat-change">
+        <span class="badge badge-info">${Icon.fileText(12)} ${stats.monthlyOrders} 笔订单</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:rgba(168,85,247,.1);color:#a855f7">${Icon.package(20)}</div>
+      <div class="stat-value">${stats.monthlyOrders}<span class="stat-unit">笔</span></div>
+      <div class="stat-label">采购订单</div>
+      <div class="stat-change">
+        <span class="badge badge-warning">${Icon.clock(12)} ${pendingCount} 个待审批</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:rgba(5,150,105,.1);color:var(--price-down)">${Icon.tag(20)}</div>
+      <div class="stat-value">${stats.avgDiscount}<span class="stat-unit">%</span></div>
+      <div class="stat-label">平均折扣</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:rgba(217,119,6,.1);color:var(--price-flat)">${Icon.store(20)}</div>
+      <div class="stat-value">${stats.suppliers}<span class="stat-unit">家</span></div>
+      <div class="stat-label">合作供应商</div>
+    </div>`;
+}
+
+function loadStats() {
+  const el = document.getElementById('statsGrid');
+  el.innerHTML = Utils.skeletonStatCards(4);
+  Promise.all([API.getEnterpriseStats(), API.getEnterpriseOrders()])
+    .then(([stats, orders]) => {
+      const pendingCount = orders.filter(o => o.status === 'pending').length;
+      renderStats(stats, pendingCount);
+      /* Update enterprise info bar */
+      document.getElementById('entSpend').textContent = Utils.formatPrice(stats.monthlySpend);
+      document.getElementById('entSuppliers').textContent = stats.suppliers;
+    })
+    .catch(err => {
+      el.innerHTML = `<div class="empty-state" style="grid-column:span 4">${Icon.alertTriangle(32)}<p>采购概览加载失败</p></div>`;
+      Toast.error('加载失败', err.message || '数据获取异常，请重试', loadStats);
+    });
+}
+
+/* ============================================================
+   Region 3-left: Spend category bar chart
+   ============================================================ */
+function renderCategory(stats) {
+  const body = document.getElementById('categoryBody');
+  const colors = ['#4f46e5', '#6366f1', '#0ea5e9', '#06b6d4'];
+  const legend = stats.spendByCategory.map((c, i) =>
+    `<div class="chart-legend-item">
+      <span class="chart-legend-dot" style="background:${colors[i % colors.length]}"></span>
+      ${c.name} <span style="color:var(--muted-2)">${c.pct}%</span>
+    </div>`
+  ).join('');
+
+  body.innerHTML = `
+    <div class="chart-legend">${legend}</div>
+    ${Utils.barChart(stats.spendByCategory, 360, 160)}
+  `;
+}
+
+loadData(
+  document.getElementById('categoryBody'),
+  () => API.getEnterpriseStats(),
+  (data) => renderCategory(data),
+  { skeleton: `<div class="skeleton skeleton-block"></div><div class="skeleton skeleton-text w-60"></div>` }
+);
+
+/* ============================================================
+   Region 3-right: Spend trend chart
+   ============================================================ */
+function renderTrend(stats) {
+  const body = document.getElementById('trendBody');
+  const badge = document.getElementById('trendBadge');
+  const monthlyData = generateMonthlyTrend(stats.monthlySpend);
+  const monthLabels = ['4月', '5月', '6月', '7月', '8月', '9月'];
+  const avg = Math.round(monthlyData.reduce((a, b) => a + b, 0) / monthlyData.length);
+  const change = ((monthlyData[5] - monthlyData[4]) / monthlyData[4] * 100).toFixed(1);
+
+  badge.innerHTML = `${Icon.trendingUp(12)} +${change}%`;
+
+  body.innerHTML = `
+    ${renderTrendChart(monthlyData, monthLabels, '#4f46e5')}
+    <div class="trend-footer">
+      <div class="mini-stat">
+        <div class="mini-label">本月支出</div>
+        <div class="mini-val" style="color:var(--brand-1)">${Utils.formatPrice(stats.monthlySpend)}</div>
+      </div>
+      <div class="mini-stat">
+        <div class="mini-label">月均支出</div>
+        <div class="mini-val">${Utils.formatPrice(avg)}</div>
+      </div>
+      <div class="mini-stat">
+        <div class="mini-label">环比增长</div>
+        <div class="mini-val" style="color:var(--price-up)">+${change}%</div>
+      </div>
+    </div>
+  `;
+}
+
+loadData(
+  document.getElementById('trendBody'),
+  () => API.getEnterpriseStats(),
+  (data) => renderTrend(data),
+  { skeleton: `<div class="skeleton skeleton-block" style="height:180px"></div>` }
+);
+
+/* ============================================================
+   Region 4: Supplier compare table
+   ============================================================ */
+function renderSupplier(stats) {
+  const body = document.getElementById('supplierBody');
+  const list = stats.supplierCompare;
+  if (!list || !list.length) {
+    body.innerHTML = `<div class="empty-state">${Icon.store(32)}<p>暂无供应商数据</p></div>`;
+    return;
+  }
+  body.innerHTML = `
+    <div class="table-wrap" style="border:none">
+      <table>
+        <thead>
+          <tr>
+            <th>供应商</th><th>订单数</th><th>采购总额</th>
+            <th>平均时效(天)</th><th>评分</th><th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${list.map(s => {
+            const orders = s.orders || s.items || 0;
+            return `
+              <tr>
+                <td style="font-weight:600">${s.name}</td>
+                <td>${orders}</td>
+                <td><span class="price price-sm">${Utils.formatPrice(s.total)}</span></td>
+                <td>${s.avgTime}</td>
+                <td>${renderStars(s.rating || 0)}</td>
+                <td><button class="btn btn-sm btn-outline">查看详情</button></td>
+              </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+loadData(
+  document.getElementById('supplierBody'),
+  () => API.getEnterpriseStats(),
+  (data) => renderSupplier(data),
+  { skeleton: `<div class="table-wrap" style="border:none">${Utils.skeletonRow(3)}</div>` }
+);
+
+/* ============================================================
+   Region 5: Recent enterprise orders
+   ============================================================ */
+function renderOrders(orders) {
+  const body = document.getElementById('ordersBody');
+  if (!orders || !orders.length) {
+    body.innerHTML = `<div class="empty-state">${Icon.package(32)}<p>暂无采购订单</p></div>`;
+    return;
+  }
+  const statusMap = {
+    approved:   { cls: 'badge-success', icon: 'checkCircle', text: '已审批' },
+    pending:    { cls: 'badge-warning', icon: 'clock',       text: '待审批' },
+    completed:  { cls: 'badge-info',    icon: 'checkCircle', text: '已完成' },
+  };
+  body.innerHTML = `
+    <div class="table-wrap" style="border:none">
+      <table>
+        <thead>
+          <tr>
+            <th>订单号</th><th>标题</th><th>供应商</th><th>商品数</th>
+            <th>总金额</th><th>状态</th><th>采购人</th><th>日期</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${orders.map(o => {
+            const st = statusMap[o.status] || statusMap.pending;
+            return `
+              <tr>
+                <td class="font-mono text-sm">${o.id}</td>
+                <td style="font-weight:500">${o.title}</td>
+                <td>${o.supplier}</td>
+                <td>${o.items}</td>
+                <td><span class="price price-sm">${Utils.formatPrice(o.total)}</span></td>
+                <td><span class="badge ${st.cls}">${Icon[st.icon](12)} ${st.text}</span></td>
+                <td class="text-sm">${o.buyer}</td>
+                <td class="text-sm text-muted">${o.date}</td>
+              </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+loadData(
+  document.getElementById('ordersBody'),
+  () => API.getEnterpriseOrders(),
+  (data) => renderOrders(data),
+  { skeleton: `<div class="table-wrap" style="border:none">${Utils.skeletonRow(5)}</div>` }
+);
+
+/* ---- Export button ---- */
+document.getElementById('exportBtn').addEventListener('click', () => {
+  Toast.success('导出成功', '采购报表已生成，正在下载...');
+});
+
+/* ---- 日期选择按钮 ---- */
+document.getElementById('dateBtn').addEventListener('click', () => {
+  Toast.info('日期筛选', '日期选择器开发中，当前显示 2026年9月 数据');
+});
+
+/* ---- 通知铃铛 ---- */
+document.getElementById('bellBtn').addEventListener('click', () => {
+  Toast.info('通知中心', '您有 1 条审批提醒：年会礼品-蓝牙耳机 待审批');
+});
+
+/* ---- 系统侧栏菜单交互 ---- */
+document.querySelectorAll('.sidebar-item[data-action]').forEach(item => {
+  item.addEventListener('click', () => {
+    var label = item.querySelector('.si-text').textContent.trim();
+    Toast.info(label, label + '功能开发中，敬请期待');
+  });
+});
+
+/* ---- 查看全部链接 ---- */
+document.querySelectorAll('[data-action="view-all-suppliers"]').forEach(el => {
+  el.addEventListener('click', (e) => { e.preventDefault(); Toast.info('供应商列表', '完整供应商列表开发中'); });
+});
+document.querySelectorAll('[data-action="view-all-orders"]').forEach(el => {
+  el.addEventListener('click', (e) => { e.preventDefault(); Toast.info('采购订单', '完整订单列表开发中'); });
+});
+
+/* ---- 供应商"查看详情"按钮 ---- */
+document.addEventListener('click', function(e) {
+  if (e.target.closest('.btn.btn-sm.btn-outline') && e.target.closest('#supplierBody')) {
+    e.preventDefault();
+    Toast.info('供应商详情', '供应商详情页面开发中');
+  }
+});
+
+/* ---- Init ---- */
+renderDataIcons();
+renderSidebarIcons();
+loadStats();
+</script>
+</body>
+</html>

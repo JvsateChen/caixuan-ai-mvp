@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>采选AI · 智能比价助手</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <!-- 共享 Topbar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <a href="index.html" class="logo">
+          <span class="logo-mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18l-2 12H5L3 3z"/><path d="M3 3l1.5-2h15L21 3"/><circle cx="9" cy="20" r="1"/><circle cx="17" cy="20" r="1"/></svg></span>
+          采选AI
+        </a>
+      </div>
+      <nav class="topbar-nav">
+        <a href="index.html" class="nav-link active">AI比价</a>
+        <a href="dashboard.html" class="nav-link">我的看板</a>
+        <a href="admin.html" class="nav-link">企业采购</a>
+      </nav>
+      <div class="topbar-right">
+        <button class="icon-btn" id="bellBtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="badge-dot"></span></button>
+        <a href="profile.html" class="avatar" style="text-decoration:none">CX</a>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <!-- 区域1: 精简 Hero (仅标题+副标题) -->
+      <section class="ai-hero" style="padding:24px 20px">
+        <h1>用对话找到全网好价</h1>
+        <p>自然语言输入商品需求，AI秒级比价淘宝、京东、拼多多</p>
+      </section>
+
+      <!-- 区域2: AI 对话卡片 (主区域，含消息区+底部输入栏) -->
+      <section class="chat-card mt-md" id="chatCard">
+        <div class="chat-card-body" id="chatContainer">
+          <div class="chat-msg ai">
+            <div class="chat-avatar ai" id="welcomeAvatar"></div>
+            <div class="chat-bubble">
+              你好！我是采选AI助手，告诉我你想找什么商品，我来帮你跨平台比价。
+              <div class="chat-quick-pills" id="quickPills">
+                <span class="chat-quick-pill">iPhone 15 Pro 比价</span>
+                <span class="chat-quick-pill">兰蔻小黑瓶精华</span>
+                <span class="chat-quick-pill">Sony降噪耳机</span>
+                <span class="chat-quick-pill">戴森吸尘器</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="chat-card-footer">
+          <input type="text" id="aiInput" placeholder="输入商品名称、品牌或型号...">
+          <button class="btn btn-primary" id="aiSendBtn"><span id="aiSendIcon"></span></button>
+        </div>
+      </section>
+
+      <!-- 区域3: 热门商品推荐 (精简为3个) -->
+      <section class="mt-lg">
+        <div class="section-header">
+          <h2>热门比价</h2>
+          <a href="compare.html" class="link-more">查看全部</a>
+        </div>
+        <div class="grid grid-3" id="hotProducts"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      /* ---- 注入静态图标 ---- */
+      document.getElementById('aiSendIcon').innerHTML = Icon.send(18);
+      document.getElementById('welcomeAvatar').innerHTML = Icon.sparkles(16);
+
+      var chatContainer = document.getElementById('chatContainer');
+      var aiInput = document.getElementById('aiInput');
+      var aiSendBtn = document.getElementById('aiSendBtn');
+
+      /* ---- 工具方法 ---- */
+      function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+      }
+      function lowestPlatform(p) {
+        var low = p.platforms[0];
+        p.platforms.forEach(function (pl) { if (pl.price < low.price) low = pl; });
+        return low;
+      }
+      function trendBadgeClass(trend) {
+        if (trend === 'down') return 'badge-success';
+        if (trend === 'up') return 'badge-danger';
+        return 'badge-warning';
+      }
+      function trendPriceClass(trend) {
+        if (trend === 'down') return 'price-down';
+        if (trend === 'up') return 'price-up';
+        return 'price-flat';
+      }
+
+      /* ---- 商品卡片渲染 ---- */
+      function renderProductCard(p) {
+        var trend = lowestPlatform(p).trend;
+        return '' +
+          '<a href="detail.html?id=' + p.id + '" class="product-card">' +
+            '<div class="product-img">' + productPlaceholder(p.image, 120) + '</div>' +
+            '<div class="product-info">' +
+              '<div class="product-name">' + escapeHtml(p.name) + '</div>' +
+              '<div class="flex" style="align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">' +
+                '<span class="product-price">' + Utils.formatPrice(p.lowest) + '</span>' +
+                '<span class="badge ' + trendBadgeClass(trend) + '">' + Utils.trendIcon(trend, 12) + ' ' + Utils.trendText(trend) + '</span>' +
+              '</div>' +
+              Utils.sparkline(p.sparkline, 80, 20, '#4f46e5') +
+            '</div>' +
+          '</a>';
+      }
+
+      function productSkeleton() {
+        return '' +
+          '<div class="product-card">' +
+            '<div class="skeleton" style="width:100%;height:160px;border-radius:0"></div>' +
+            '<div class="product-info">' +
+              '<div class="skeleton skeleton-text w-80"></div>' +
+              '<div class="skeleton skeleton-text w-40" style="height:20px"></div>' +
+              '<div class="skeleton skeleton-text w-30"></div>' +
+            '</div>' +
+          '</div>';
+      }
+
+      /* ---- AI 回复渲染（含迷你比价卡片） ---- */
+      function renderAIReply(data) {
+        var results = data.results || [];
+        if (!results.length) {
+          return '<div style="margin-bottom:4px">未找到匹配商品，请换个关键词试试。</div>';
+        }
+        var html = '<div style="margin-bottom:10px">为你找到 <b style="color:var(--brand-1)">' + results.length + '</b> 个相关商品，以下是跨平台比价结果：</div>';
+        results.forEach(function (p) {
+          html += '' +
+            '<div style="margin:10px 0;padding:12px;border:1px solid var(--rule);border-radius:10px;background:var(--surface-2)">' +
+              '<div style="font-weight:600;font-size:0.85rem;margin-bottom:10px">' + escapeHtml(p.name) + '</div>' +
+              '<div class="grid grid-3" style="gap:8px">' +
+                p.platforms.map(function (pl) {
+                  return '' +
+                    '<div style="background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:8px;text-align:center">' +
+                      '<div style="font-size:0.72rem;color:var(--muted);margin-bottom:4px">' + pl.name + '</div>' +
+                      '<div class="price price-sm ' + trendPriceClass(pl.trend) + '">' + Utils.formatPrice(pl.price) + '</div>' +
+                      '<div class="price-trend ' + Utils.trendClass(pl.trend) + '" style="justify-content:center">' +
+                        Utils.trendIcon(pl.trend, 12) + ' ' + (pl.delta !== 0 ? Utils.formatPrice(Math.abs(pl.delta)) : '持平') +
+                      '</div>' +
+                    '</div>';
+                }).join('') +
+              '</div>' +
+            '</div>';
+        });
+        var firstId = results[0].id;
+        html += '<a href="compare.html?id=' + firstId + '&q=' + encodeURIComponent(data.query) + '" class="btn btn-primary btn-sm" style="margin-top:6px">' + Icon.externalLink(14) + ' 查看完整比价</a>';
+        return html;
+      }
+
+      function scrollChatBottom() {
+        var last = chatContainer.lastElementChild;
+        if (last && last.scrollIntoView) last.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
+
+      /* ---- AI 对话交互 ---- */
+      var chatting = false;
+      function sendChat(query) {
+        if (chatting) return;
+        query = (query || '').trim();
+        if (!query) return;
+        chatting = true;
+
+        // 用户消息气泡
+        var userMsg = document.createElement('div');
+        userMsg.className = 'chat-msg user';
+        userMsg.innerHTML = '<div class="chat-avatar user">CX</div><div class="chat-bubble">' + escapeHtml(query) + '</div>';
+        chatContainer.appendChild(userMsg);
+
+        // AI 解析中间态（流式输出模拟）
+        var parseMsg = document.createElement('div');
+        parseMsg.className = 'chat-msg ai';
+        parseMsg.innerHTML = '<div class="chat-avatar ai">' + Icon.sparkles(16) + '</div><div class="chat-bubble" id="parseBubble"></div>';
+        chatContainer.appendChild(parseMsg);
+        var parseBubble = parseMsg.querySelector('.chat-bubble');
+        scrollChatBottom();
+
+        var steps = [
+          { delay: 300, text: '正在识别搜索意图...' },
+          { delay: 500, text: '关键词解析：已提取商品名、品牌、规格信息' },
+          { delay: 500, text: '正在匹配淘宝、京东、拼多多三平台同款商品...' },
+        ];
+        var stepIdx = 0;
+        function nextStep() {
+          if (stepIdx < steps.length) {
+            var step = steps[stepIdx];
+            setTimeout(function () {
+              var line = document.createElement('div');
+              line.style.cssText = 'font-size:0.82rem;color:var(--muted);margin-bottom:4px;display:flex;align-items:center;gap:6px';
+              line.innerHTML = '<span class="chat-typing" style="transform:scale(0.6)"><span></span><span></span><span></span></span> ' + step.text;
+              parseBubble.appendChild(line);
+              scrollChatBottom();
+              stepIdx++;
+              nextStep();
+            }, step.delay);
+          } else {
+            // 切换为 typing 动画
+            parseBubble.innerHTML += '<div class="chat-typing" style="margin-top:4px"><span></span><span></span><span></span></div>';
+            scrollChatBottom();
+            // 调用API
+            API.aiChat(query).then(function (data) {
+              parseMsg.remove();
+              var aiMsg = document.createElement('div');
+              aiMsg.className = 'chat-msg ai';
+              aiMsg.innerHTML = '<div class="chat-avatar ai">' + Icon.sparkles(16) + '</div><div class="chat-bubble">' + renderAIReply(data) + '</div>';
+              chatContainer.appendChild(aiMsg);
+              scrollChatBottom();
+              chatting = false;
+            }).catch(function (err) {
+              parseMsg.remove();
+              chatting = false;
+              Toast.error('AI对话失败', (err && err.message) || '网络异常，请重试', function () { sendChat(query); });
+            });
+          }
+        }
+        nextStep();
+      }
+
+      function doSearch() {
+        var q = aiInput.value;
+        sendChat(q);
+        aiInput.value = '';
+      }
+
+      aiSendBtn.addEventListener('click', doSearch);
+      aiInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') doSearch(); });
+      document.getElementById('quickPills').addEventListener('click', function (e) {
+        var pill = e.target.closest('.chat-quick-pill');
+        if (pill) sendChat(pill.textContent.trim());
+      });
+
+      /* ---- 通知铃铛 ---- */
+      document.getElementById('bellBtn').addEventListener('click', function () {
+        Toast.info('通知中心', '您有 1 条价格预警提醒：iPhone 15 Pro 已降至目标价');
+      });
+
+      /* ---- 加载热门商品（骨架屏 → API → 渲染 → Toast重试） ---- */
+      var hotGrid = document.getElementById('hotProducts');
+      function loadHot() {
+        loadData(hotGrid, function () { return API.getProducts(); }, function (products, el) {
+          el.innerHTML = products.slice(0, 3).map(renderProductCard).join('');
+        }, {
+          skeleton: Array.from({ length: 3 }, function () { return productSkeleton(); }).join('')
+        });
+      }
+      loadHot();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>采选AI · 比价结果</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <!-- 共享 Topbar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <a href="index.html" class="logo">
+          <span class="logo-mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18l-2 12H5L3 3z"/><path d="M3 3l1.5-2h15L21 3"/><circle cx="9" cy="20" r="1"/><circle cx="17" cy="20" r="1"/></svg></span>
+          采选AI
+        </a>
+      </div>
+      <nav class="topbar-nav">
+        <a href="index.html" class="nav-link active">AI比价</a>
+        <a href="dashboard.html" class="nav-link">我的看板</a>
+        <a href="admin.html" class="nav-link">企业采购</a>
+      </nav>
+      <div class="topbar-right">
+        <button class="icon-btn" id="bellBtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="badge-dot"></span></button>
+        <a href="profile.html" class="avatar" style="text-decoration:none">CX</a>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">
+        <a href="index.html" class="back-btn" id="backBtn"></a>
+        <h1 class="page-title" style="margin-bottom:0">比价结果</h1>
+      </div>
+      <p class="page-subtitle" id="pageSubtitle">正在解析搜索词...</p>
+
+      <!-- 区域1: 搜索栏 -->
+      <div id="searchBar" class="mb-md"></div>
+
+      <!-- 区域2: 商品摘要卡片 -->
+      <div id="productSummary" class="mb-md"></div>
+
+      <!-- 区域3: 三平台比价卡片 -->
+      <div class="section-header">
+        <h2>三平台实时比价</h2>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="text-muted text-sm" id="updateTime"></span>
+          <div class="sort-group" id="sortGroup">
+            <button class="sort-btn active" data-sort="price-asc" id="sortPriceAsc">价格升序</button>
+            <button class="sort-btn" data-sort="price-desc" id="sortPriceDesc">价格降序</button>
+            <button class="sort-btn" data-sort="trend" id="sortTrend">趋势优先</button>
+          </div>
+        </div>
+      </div>
+      <div class="compare-grid" id="compareGrid"></div>
+
+      <!-- 区域4: 价格统计 -->
+      <div class="section-header mt-lg"><h2>价格统计</h2></div>
+      <div class="grid grid-4" id="priceStats"></div>
+
+      <!-- 区域5: 相关商品推荐 -->
+      <div class="section-header mt-lg">
+        <h2>相关推荐</h2>
+        <a href="index.html" class="link-more">返回首页</a>
+      </div>
+      <div class="grid grid-3" id="relatedProducts"></div>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var params = new URLSearchParams(location.search);
+      var productId = params.get('id') || 'P001';
+      var query = params.get('q') || '';
+
+      /* ---- 返回按钮 ---- */
+      document.getElementById('backBtn').innerHTML = Icon.arrowLeft(16) + ' 返回首页';
+
+      /* ---- 工具方法 ---- */
+      function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+      }
+      function lowestPlatform(p) {
+        var low = p.platforms[0];
+        p.platforms.forEach(function (pl) { if (pl.price < low.price) low = pl; });
+        return low;
+      }
+      function trendBadgeClass(trend) {
+        if (trend === 'down') return 'badge-success';
+        if (trend === 'up') return 'badge-danger';
+        return 'badge-warning';
+      }
+      function trendPriceClass(trend) {
+        if (trend === 'down') return 'price-down';
+        if (trend === 'up') return 'price-up';
+        return 'price-flat';
+      }
+      function sparkColor(trend) {
+        if (trend === 'down') return '#059669';
+        if (trend === 'up') return '#dc2626';
+        return '#d97706';
+      }
+
+      /* ---- 副标题：搜索关键词 ---- */
+      var subtitle = document.getElementById('pageSubtitle');
+      subtitle.innerHTML = query
+        ? '搜索关键词：<b style="color:var(--ink)">' + escapeHtml(query) + '</b>'
+        : '请在上方输入框输入关键词搜索商品';
+
+      /* ---- 区域1: 搜索栏 ---- */
+      var searchBar = document.getElementById('searchBar');
+      searchBar.innerHTML = '' +
+        '<div class="card" style="display:flex;align-items:center;gap:12px;padding:10px 16px">' +
+          '<button class="icon-btn" id="searchSubmitBtn" style="color:var(--muted);flex-shrink:0">' + Icon.search(20) + '</button>' +
+          '<input type="text" id="searchInput" placeholder="搜索商品名称、品牌或型号..." value="' + escapeHtml(query) + '" style="flex:1;border:none;background:transparent;font-size:0.92rem;color:var(--ink)">' +
+          '<button class="btn btn-ghost btn-sm" id="filterBtn">' + Icon.filter(16) + ' 筛选</button>' +
+        '</div>';
+      function doSearch() {
+        var q = document.getElementById('searchInput').value.trim();
+        if (q) location.href = 'compare.html?id=' + encodeURIComponent(productId) + '&q=' + encodeURIComponent(q);
+      }
+      document.getElementById('searchSubmitBtn').addEventListener('click', doSearch);
+      document.getElementById('searchInput').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') doSearch();
+      });
+      document.getElementById('filterBtn').addEventListener('click', function () {
+        Toast.info('筛选条件', '筛选功能开发中，敬请期待');
+      });
+
+      /* ---- 通知铃铛 ---- */
+      document.getElementById('bellBtn').addEventListener('click', function () {
+        Toast.info('通知中心', '您有 1 条价格预警提醒：iPhone 15 Pro 已降至目标价');
+      });
+
+      /* ---- 容器引用 ---- */
+      var productSummary = document.getElementById('productSummary');
+      var compareGrid = document.getElementById('compareGrid');
+      var priceStats = document.getElementById('priceStats');
+      var updateTime = document.getElementById('updateTime');
+
+      /* ---- 区域2: 商品摘要卡片 ---- */
+      function renderProductSummary(p) {
+        productSummary.innerHTML = '' +
+          '<div class="card" style="display:flex;gap:20px;align-items:center;flex-wrap:wrap">' +
+            '<div style="flex-shrink:0;width:120px;height:120px;display:flex;align-items:center;justify-content:center;background:var(--surface-3);border-radius:var(--r-md)">' + productPlaceholder(p.image, 110) + '</div>' +
+            '<div style="flex:1;min-width:220px">' +
+              '<div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">' +
+                '<span class="chip">' + escapeHtml(p.category) + '</span>' +
+                '<span class="chip">' + escapeHtml(p.brand) + '</span>' +
+                '<span class="chip">' + escapeHtml(p.spec) + '</span>' +
+              '</div>' +
+              '<div style="font-size:1.05rem;font-weight:600;margin-bottom:12px">' + escapeHtml(p.name) + '</div>' +
+              '<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">' +
+                '<div>' +
+                  '<span class="text-muted text-sm">当前最优价</span>' +
+                  '<div class="price price-lg price-down">' + Utils.formatPrice(p.lowest) + '</div>' +
+                '</div>' +
+                '<button class="btn btn-outline" id="alertBtn">' + Icon.target(16) + ' 设置价格预警</button>' +
+              '</div>' +
+            '</div>' +
+          '</div>';
+        document.getElementById('alertBtn').addEventListener('click', function () {
+          window.location.href = 'detail.html?id=' + encodeURIComponent(p.id);
+        });
+      }
+
+      /* ---- 区域3: 三平台比价卡片 ---- */
+      var currentProduct = null;
+      var currentSort = 'price-asc';
+      function sortPlatforms(platforms, sort) {
+        var arr = platforms.slice();
+        if (sort === 'price-asc') arr.sort(function (a, b) { return a.price - b.price; });
+        else if (sort === 'price-desc') arr.sort(function (a, b) { return b.price - a.price; });
+        else if (sort === 'trend') arr.sort(function (a, b) {
+          var order = { down: 0, flat: 1, up: 2 };
+          if (order[a.trend] !== order[b.trend]) return order[a.trend] - order[b.trend];
+          return a.price - b.price;
+        });
+        return arr;
+      }
+      function renderCompareCards(p) {
+        currentProduct = p;
+        var lowestPlat = lowestPlatform(p);
+        var targetMet = p.lowest <= p.targetPrice;
+        var sorted = sortPlatforms(p.platforms, currentSort);
+
+        compareGrid.innerHTML = sorted.map(function (pl) {
+          var isBest = pl === lowestPlat;
+          var cls = ['compare-card'];
+          if (isBest) cls.push('best');
+          if (isBest && targetMet) cls.push('rainbow-sweep');
+          var platformColor = PLATFORM_COLORS[pl.name] || '#4f46e5';
+          var trendCls = Utils.trendClass(pl.trend);
+          var deltaText = pl.delta !== 0 ? Utils.formatPrice(Math.abs(pl.delta)) : '持平';
+
+          var badges = '';
+          if (isBest) {
+            badges = '<div style="display:flex;justify-content:center;gap:8px;margin-bottom:10px;position:relative;z-index:6">' +
+              '<span class="badge badge-success">' + Icon.check(12) + ' 最优价</span>' +
+              (targetMet ? '<span class="rainbow-badge">' + Icon.sparkles(12) + ' 目标达成</span>' : '') +
+            '</div>';
+          }
+
+          /* 原价删除线 + 优惠标签 */
+          var hasDiscount = pl.prevPrice && pl.prevPrice > pl.price;
+          var priceDetail = '';
+          if (hasDiscount) {
+            var discountPct = Math.round((1 - pl.price / pl.prevPrice) * 100);
+            priceDetail = '<div style="display:flex;align-items:center;gap:6px;justify-content:center;margin-top:2px">' +
+              '<span style="text-decoration:line-through;color:var(--muted);font-size:0.85rem">' + Utils.formatPrice(pl.prevPrice) + '</span>' +
+              '<span class="badge badge-success" style="font-size:0.72rem;padding:2px 6px">-' + discountPct + '%</span>' +
+            '</div>';
+          } else if (pl.prevPrice && pl.prevPrice < pl.price) {
+            priceDetail = '<div style="display:flex;align-items:center;gap:6px;justify-content:center;margin-top:2px">' +
+              '<span style="color:var(--muted);font-size:0.85rem">原价 ' + Utils.formatPrice(pl.prevPrice) + '</span>' +
+              '<span class="badge badge-danger" style="font-size:0.72rem;padding:2px 6px">+' + Utils.formatPrice(pl.price - pl.prevPrice) + '</span>' +
+            '</div>';
+          }
+
+          return '' +
+            '<div class="' + cls.join(' ') + '">' +
+              badges +
+              '<div class="compare-platform">' +
+                '<span style="width:10px;height:10px;border-radius:50%;background:' + platformColor + ';display:inline-block"></span>' +
+                pl.name +
+              '</div>' +
+              '<div class="compare-price ' + trendPriceClass(pl.trend) + '">' + Utils.formatPrice(pl.price) + '</div>' +
+              priceDetail +
+              '<div class="compare-trend price-trend ' + trendCls + '" style="justify-content:center">' +
+                Utils.trendIcon(pl.trend, 14) + ' ' + deltaText +
+              '</div>' +
+              '<div style="margin:8px 0 14px">' + Utils.sparkline(p.sparkline, 120, 28, sparkColor(pl.trend)) + '</div>' +
+              '<a href="' + pl.url + '" class="btn btn-primary compare-buy" data-platform="' + pl.name + '">' + Icon.externalLink(14) + ' 去购买</a>' +
+            '</div>';
+        }).join('');
+
+        compareGrid.querySelectorAll('[data-platform]').forEach(function (btn) {
+          btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            Toast.info('跳转购买', '正在跳转至' + btn.dataset.platform + '平台...');
+          });
+        });
+      }
+
+      /* 排序按钮交互 */
+      document.getElementById('sortGroup').addEventListener('click', function (e) {
+        var btn = e.target.closest('.sort-btn');
+        if (!btn || !currentProduct) return;
+        document.querySelectorAll('.sort-btn').forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        currentSort = btn.dataset.sort;
+        renderCompareCards(currentProduct);
+      });
+
+      /* ---- 区域4: 价格统计 ---- */
+      function renderPriceStats(p) {
+        var sl = p.sparkline;
+        var lowest30 = Math.min.apply(null, sl);
+        var highest30 = Math.max.apply(null, sl);
+        var avg30 = Math.round(sl.reduce(function (a, b) { return a + b; }, 0) / sl.length);
+        var saved = highest30 - p.lowest;
+
+        priceStats.innerHTML = '' +
+          '<div class="stat-card">' +
+            '<div class="stat-icon" style="background:var(--price-down-bg);color:var(--price-down)">' + Icon.arrowDown(20) + '</div>' +
+            '<div class="stat-value price-down">' + Utils.formatPrice(p.lowest) + '</div>' +
+            '<div class="stat-label">当前最优价</div>' +
+          '</div>' +
+          '<div class="stat-card">' +
+            '<div class="stat-icon" style="background:var(--price-down-bg);color:var(--price-down)">' + Icon.trendingDown(20) + '</div>' +
+            '<div class="stat-value">' + Utils.formatPrice(lowest30) + '</div>' +
+            '<div class="stat-label">30天最优价</div>' +
+          '</div>' +
+          '<div class="stat-card">' +
+            '<div class="stat-icon" style="background:var(--brand-soft);color:var(--brand-1)">' + Icon.chartLine(20) + '</div>' +
+            '<div class="stat-value">' + Utils.formatPrice(avg30) + '</div>' +
+            '<div class="stat-label">30天均价</div>' +
+          '</div>' +
+          '<div class="stat-card">' +
+            '<div class="stat-icon" style="background:var(--price-down-bg);color:var(--price-down)">' + Icon.wallet(20) + '</div>' +
+            '<div class="stat-value price-down">' + Utils.formatPrice(saved) + '</div>' +
+            '<div class="stat-label">相比最高价节省</div>' +
+          '</div>';
+      }
+
+      /* ---- 骨架屏 ---- */
+      var compareSkeleton = Array.from({ length: 3 }, function () {
+        return '' +
+          '<div class="compare-card">' +
+            '<div class="skeleton skeleton-circle" style="margin:0 auto 12px"></div>' +
+            '<div class="skeleton skeleton-text w-40" style="height:28px;margin:0 auto 8px"></div>' +
+            '<div class="skeleton skeleton-text w-30" style="margin:0 auto 12px"></div>' +
+            '<div class="skeleton" style="height:28px;margin:0 auto 14px"></div>' +
+            '<div class="skeleton skeleton-text w-60" style="margin:0 auto"></div>' +
+          '</div>';
+      }).join('');
+
+      var summarySkeleton = '' +
+        '<div class="card" style="display:flex;gap:20px;align-items:center">' +
+          '<div class="skeleton" style="width:120px;height:120px;border-radius:12px;flex-shrink:0"></div>' +
+          '<div style="flex:1">' +
+            Utils.skeletonText(2, ['w-40', 'w-80']) +
+            '<div class="skeleton skeleton-text w-30" style="height:28px;margin-top:8px"></div>' +
+          '</div>' +
+        '</div>';
+
+      var statsSkeleton = Utils.skeletonStatCards(4);
+
+      /* ---- 加载比价数据（骨架屏 → API → 渲染 → Toast重试） ---- */
+      function loadCompare() {
+        productSummary.innerHTML = summarySkeleton;
+        compareGrid.innerHTML = compareSkeleton;
+        priceStats.innerHTML = statsSkeleton;
+        updateTime.textContent = '';
+
+        API.getProductDetail(productId).then(function (p) {
+          renderProductSummary(p);
+          renderCompareCards(p);
+          renderPriceStats(p);
+          var now = new Date();
+          var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+          updateTime.textContent = '更新于 ' + pad(now.getMonth() + 1) + '/' + pad(now.getDate()) + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+        }).catch(function (err) {
+          productSummary.innerHTML = '';
+          priceStats.innerHTML = '';
+          compareGrid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">' + Icon.alertTriangle(32) + '<p>比价数据加载失败</p></div>';
+          Toast.error('加载失败', (err && err.message) || '数据获取异常', loadCompare);
+        });
+      }
+      loadCompare();
+
+      /* ---- 区域5: 相关商品推荐（骨架屏 → API → 渲染 → Toast重试） ---- */
+      var RECOMMEND_REASONS = ['同价位更优', '你可能关注', '更划算选择', '同类热销', '品牌推荐', '趋势下降中'];
+      function renderRelatedCard(p, idx) {
+        var trend = lowestPlatform(p).trend;
+        var reason = RECOMMEND_REASONS[idx % RECOMMEND_REASONS.length];
+        return '' +
+          '<a href="compare.html?id=' + p.id + '" class="product-card">' +
+            '<div class="product-img">' + productPlaceholder(p.image, 120) + '</div>' +
+            '<div class="product-info">' +
+              '<div style="margin-bottom:6px"><span class="badge badge-brand" style="font-size:0.7rem;padding:2px 8px">' + Icon.sparkles(10) + ' ' + reason + '</span></div>' +
+              '<div class="product-name">' + escapeHtml(p.name) + '</div>' +
+              '<div class="flex" style="align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">' +
+                '<span class="product-price">' + Utils.formatPrice(p.lowest) + '</span>' +
+                '<span class="badge ' + trendBadgeClass(trend) + '">' + Utils.trendIcon(trend, 12) + ' ' + Utils.trendText(trend) + '</span>' +
+              '</div>' +
+              Utils.sparkline(p.sparkline, 80, 20, '#4f46e5') +
+            '</div>' +
+          '</a>';
+      }
+      function relatedSkeleton() {
+        return '' +
+          '<div class="product-card">' +
+            '<div class="skeleton" style="width:100%;height:160px;border-radius:0"></div>' +
+            '<div class="product-info">' +
+              '<div class="skeleton skeleton-text w-80"></div>' +
+              '<div class="skeleton skeleton-text w-40" style="height:20px"></div>' +
+              '<div class="skeleton skeleton-text w-30"></div>' +
+            '</div>' +
+          '</div>';
+      }
+      var relatedGrid = document.getElementById('relatedProducts');
+      function loadRelated() {
+        loadData(relatedGrid, function () { return API.getProducts(); }, function (products, el) {
+          var related = products.filter(function (p) { return p.id !== productId; }).slice(0, 6);
+          if (!related.length) related = products.slice(0, 3);
+          el.innerHTML = related.map(function (p, i) { return renderRelatedCard(p, i); }).join('');
+        }, {
+          skeleton: Array.from({ length: 3 }, function () { return relatedSkeleton(); }).join('')
+        });
+      }
+      loadRelated();
+    });
+  </script>
+</body>
+</html>

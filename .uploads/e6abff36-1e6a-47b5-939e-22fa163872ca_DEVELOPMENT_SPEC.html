@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>采选AI · 开发交接规格文档</title>
+<style>
+:root {
+  --brand-1: #4f46e5;
+  --brand-2: #6366f1;
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --ink: #1e293b;
+  --muted: #64748b;
+  --rule: #e2e8f0;
+  --price-down: #059669;
+  --price-up: #dc2626;
+  --price-flat: #d97706;
+  --code-bg: #f8fafc;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --mono: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font); background: var(--bg); color: var(--ink); line-height: 1.7; font-size: 15px; -webkit-font-smoothing: antialiased; }
+a { color: var(--brand-1); text-decoration: none; }
+code, pre { font-family: var(--mono); font-size: 0.85rem; }
+code { background: var(--code-bg); padding: 2px 6px; border-radius: 4px; color: var(--brand-1); }
+pre { background: var(--code-bg); border: 1px solid var(--rule); border-radius: var(--r-md); padding: 16px; overflow-x: auto; line-height: 1.5; }
+pre code { background: none; padding: 0; color: var(--ink); }
+.container { max-width: 960px; margin: 0 auto; padding: 32px 24px 80px; }
+h1 { font-size: 2rem; font-weight: 700; margin-bottom: 8px; }
+h2 { font-size: 1.4rem; font-weight: 700; margin: 40px 0 16px; padding-bottom: 8px; border-bottom: 2px solid var(--rule); }
+h3 { font-size: 1.1rem; font-weight: 600; margin: 24px 0 12px; }
+h4 { font-size: 0.95rem; font-weight: 600; margin: 16px 0 8px; }
+p { margin-bottom: 12px; }
+ul, ol { margin-bottom: 12px; padding-left: 24px; }
+li { margin-bottom: 4px; }
+table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.88rem; }
+th, td { padding: 8px 12px; border: 1px solid var(--rule); text-align: left; }
+th { background: var(--code-bg); font-weight: 600; }
+.badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+.badge-brand { background: rgba(79,70,229,.08); color: var(--brand-1); }
+.badge-down { background: rgba(5,150,105,.1); color: var(--price-down); }
+.badge-up { background: rgba(220,38,38,.1); color: var(--price-up); }
+.badge-flat { background: rgba(217,119,6,.1); color: var(--price-flat); }
+.note { background: rgba(79,70,229,.04); border-left: 4px solid var(--brand-1); border-radius: var(--r-md); padding: 12px 16px; margin: 16px 0; }
+.note .label { font-size: 0.75rem; font-weight: 700; color: var(--brand-1); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+.toc { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--r-lg); padding: 20px 24px; margin: 20px 0 32px; }
+.toc-title { font-weight: 700; margin-bottom: 8px; }
+.toc ol { list-style: none; padding-left: 0; counter-reset: toc; }
+.toc ol > li { counter-increment: toc; margin-bottom: 4px; }
+.toc ol > li::before { content: counter(toc) ". "; color: var(--brand-1); font-weight: 600; }
+.toc a { color: var(--ink); }
+.toc a:hover { color: var(--brand-1); }
+.color-swatch { display: inline-flex; align-items: center; gap: 8px; }
+.color-swatch .swatch { width: 16px; height: 16px; border-radius: 4px; border: 1px solid var(--rule); display: inline-block; }
+.meta-bar { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; font-size: 0.82rem; color: var(--muted); }
+.meta-bar span { display: inline-flex; align-items: center; gap: 4px; }
+hr { border: none; height: 1px; background: var(--rule); margin: 32px 0; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>采选AI · 开发交接规格文档</h1>
+<div class="meta-bar">
+  <span>版本: 1.0</span>
+  <span>日期: 2026-09-11</span>
+  <span>原型文件: 9 个</span>
+  <span>页面数: 8 个</span>
+</div>
+
+<div class="note">
+  <div class="label">文档目的</div>
+  本文档基于已完成的 HTML/CSS/JS 高保真原型，为 Trae Code 提供完整的工程实现规格。包含设计系统、数据模型、API 接口、页面功能与交互细节。原型文件位于 <code>caixuan-ai-prototype/</code> 目录，可直接作为视觉参照。
+</div>
+
+<div class="toc">
+  <div class="toc-title">目录</div>
+  <ol>
+    <li><a href="#overview">项目概览</a></li>
+    <li><a href="#structure">文件结构</a></li>
+    <li><a href="#design-system">设计系统</a></li>
+    <li><a href="#data-models">数据模型</a></li>
+    <li><a href="#api-spec">API 接口规格</a></li>
+    <li><a href="#pages">页面功能规格</a></li>
+    <li><a href="#components">组件清单</a></li>
+    <li><a href="#interactions">交互模式</a></li>
+    <li><a href="#dev-guide">开发指南</a></li>
+  </ol>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="overview">1. 项目概览</h2>
+
+<p><strong>采选AI</strong> 是一个跨平台智能比价助手，用户通过自然语言对话搜索商品，系统自动在淘宝、京东、拼多多三大平台间进行实时比价，并提供价格趋势分析、价格预警、采购管理等功能。</p>
+
+<h3>核心功能</h3>
+<ul>
+  <li><strong>AI 对话比价</strong> — 自然语言输入商品需求，AI 解析意图并返回跨平台比价结果</li>
+  <li><strong>三平台实时比价</strong> — 淘宝/京东/拼多多同款商品价格对比，支持排序</li>
+  <li><strong>商品详情</strong> — 30 天价格走势图、三平台价格对比表、价格预警设置</li>
+  <li><strong>价格预警</strong> — 设定目标价，到价自动推送通知（站内/微信/短信）</li>
+  <li><strong>个人看板</strong> — 监控目标、价格快照、采购记录、周报复盘</li>
+  <li><strong>企业采购</strong> — 采购数据看板、供应商对比、支出分析、订单管理</li>
+  <li><strong>用户中心</strong> — 比价历史、收藏夹、预警管理、个人信息</li>
+  <li><strong>登录注册</strong> — 手机号+验证码登录、微信扫码、第三方登录</li>
+</ul>
+
+<h3>目标用户</h3>
+<ul>
+  <li>C端消费者：个人购物比价、价格监控</li>
+  <li>B端企业用户：采购数据分析、供应商管理</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="structure">2. 文件结构</h2>
+
+<pre><code>caixuan-ai-prototype/
+├── index.html          # 首页 - AI对话比价入口
+├── compare.html        # 比价结果页 - 三平台价格对比
+├── detail.html         # 商品详情页 - 走势图+预警设置
+├── dashboard.html      # 我的看板 - 监控/快照/采购/复盘
+├── admin.html          # 企业采购管理台
+├── profile.html        # 个人中心 - 历史/收藏/预警/信息
+├── login.html          # 登录页 - 手机号/微信/第三方
+├── styles.css          # 全局样式 + 设计系统
+├── app.js              # 共享应用层 (Mock数据+API模拟+图标+工具函数)
+└── DEVELOPMENT_SPEC.html  # 本文档
+</code></pre>
+
+<h3>页面路由</h3>
+<table>
+  <thead><tr><th>路由</th><th>文件</th><th>URL参数</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td>/</td><td>index.html</td><td>—</td><td>AI对话首页</td></tr>
+    <tr><td>/compare</td><td>compare.html</td><td>?id=商品ID&q=搜索词</td><td>比价结果</td></tr>
+    <tr><td>/detail</td><td>detail.html</td><td>?id=商品ID</td><td>商品详情</td></tr>
+    <tr><td>/dashboard</td><td>dashboard.html</td><td>—</td><td>个人看板</td></tr>
+    <tr><td>/admin</td><td>admin.html</td><td>—</td><td>企业采购</td></tr>
+    <tr><td>/profile</td><td>profile.html</td><td>?tab=history|fav|alert|info</td><td>个人中心</td></tr>
+    <tr><td>/login</td><td>login.html</td><td>—</td><td>登录页</td></tr>
+  </tbody>
+</table>
+
+<h3>页面跳转关系</h3>
+<pre><code>login → index (登录成功)
+index → compare (搜索商品/AI回复中的"查看完整比价")
+index → detail (点击热门商品卡片)
+compare → detail (点击"设置价格预警"按钮)
+compare → compare (搜索框重新搜索/相关推荐卡片)
+detail → compare (面包屑"比价结果"/"返回比价"链接)
+detail → detail (相关推荐卡片)
+dashboard → detail (监控目标"查看详情")
+dashboard → profile?tab=alert/fav/info (侧边栏工具链接)
+profile → detail (比价历史/预警列表中的商品链接)
+profile → login (退出登录)
+所有页面 → index (Logo/导航)
+所有页面 → profile (头像)
+</code></pre>
+
+<!-- ============================================================ -->
+<h2 id="design-system">3. 设计系统</h2>
+
+<h3>3.1 色彩系统</h3>
+
+<h4>品牌色</h4>
+<table>
+  <thead><tr><th>变量</th><th>色值</th><th>用途</th></tr></thead>
+  <tbody>
+    <tr><td><code>--brand-1</code></td><td><span class="color-swatch"><span class="swatch" style="background:#4f46e5"></span>#4f46e5</span></td><td>主品牌色（按钮、链接、高亮）</td></tr>
+    <tr><td><code>--brand-2</code></td><td><span class="color-swatch"><span class="swatch" style="background:#6366f1"></span>#6366f1</span></td><td>辅助品牌色（渐变终点）</td></tr>
+    <tr><td><code>--brand-grad</code></td><td>linear-gradient(135deg, #4f46e5, #6366f1)</td><td>主按钮、Logo、头像背景</td></tr>
+    <tr><td><code>--brand-soft</code></td><td>rgba(79,70,229,0.08)</td><td>品牌色浅底（hover、active状态）</td></tr>
+  </tbody>
+</table>
+
+<h4>价格语义色</h4>
+<table>
+  <thead><tr><th>变量</th><th>色值</th><th>语义</th></tr></thead>
+  <tbody>
+    <tr><td><code>--price-down</code></td><td><span class="color-swatch"><span class="swatch" style="background:#059669"></span>#059669</span></td><td><span class="badge badge-down">降价</span> 最优价</td></tr>
+    <tr><td><code>--price-up</code></td><td><span class="color-swatch"><span class="swatch" style="background:#dc2626"></span>#dc2626</span></td><td><span class="badge badge-up">涨价</span></td></tr>
+    <tr><td><code>--price-flat</code></td><td><span class="color-swatch"><span class="swatch" style="background:#d97706"></span>#d97706</span></td><td><span class="badge badge-flat">持平</span></td></tr>
+  </tbody>
+</table>
+
+<h4>平台色</h4>
+<table>
+  <thead><tr><th>平台</th><th>色值</th><th>用途</th></tr></thead>
+  <tbody>
+    <tr><td>拼多多</td><td><span class="color-swatch"><span class="swatch" style="background:#e02130"></span>#e02130</span></td><td>平台标识点、图表折线</td></tr>
+    <tr><td>京东</td><td><span class="color-swatch"><span class="swatch" style="background:#1677ff"></span>#1677ff</span></td><td>平台标识点、图表折线</td></tr>
+    <tr><td>淘宝</td><td><span class="color-swatch"><span class="swatch" style="background:#ff6a00"></span>#ff6a00</span></td><td>平台标识点、图表折线</td></tr>
+  </tbody>
+</table>
+
+<h4>表面/文本/边框</h4>
+<table>
+  <thead><tr><th>变量</th><th>色值</th><th>用途</th></tr></thead>
+  <tbody>
+    <tr><td><code>--bg</code></td><td>#f4f6f9</td><td>页面背景（冷白）</td></tr>
+    <tr><td><code>--surface</code></td><td>#ffffff</td><td>卡片背景</td></tr>
+    <tr><td><code>--surface-2</code></td><td>#f8fafc</td><td>次级表面（表头）</td></tr>
+    <tr><td><code>--surface-3</code></td><td>#f1f5f9</td><td>三级表面（输入框底、骨架屏）</td></tr>
+    <tr><td><code>--ink</code></td><td>#1e293b</td><td>主文本</td></tr>
+    <tr><td><code>--muted</code></td><td>#64748b</td><td>次要文本</td></tr>
+    <tr><td><code>--muted-2</code></td><td>#94a3b8</td><td>占位符文本</td></tr>
+    <tr><td><code>--rule</code></td><td>#e2e8f0</td><td>边框</td></tr>
+    <tr><td><code>--rule-2</code></td><td>#cbd5e1</td><td>输入框边框</td></tr>
+  </tbody>
+</table>
+
+<h3>3.2 排版系统</h3>
+<table>
+  <thead><tr><th>属性</th><th>值</th></tr></thead>
+  <tbody>
+    <tr><td>字体族</td><td>-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif</td></tr>
+    <tr><td>等宽字体</td><td>"SF Mono", "Fira Code", "Cascadia Code", monospace（价格、数字）</td></tr>
+    <tr><td>基础字号</td><td>15px (html root)</td></tr>
+    <tr><td>行高</td><td>1.6 (body)</td></tr>
+    <tr><td>页面标题</td><td>1.5rem / 700</td></tr>
+    <tr><td>区域标题</td><td>1.1rem / 600</td></tr>
+    <tr><td>卡片标题</td><td>1rem / 600</td></tr>
+    <tr><td>正文</td><td>0.85rem-0.92rem</td></tr>
+    <tr><td>辅助文本</td><td>0.78rem-0.8rem / color: muted</td></tr>
+    <tr><td>价格大号</td><td>1.5rem / 700 / mono</td></tr>
+    <tr><td>价格中号</td><td>1.15rem / 700 / mono</td></tr>
+    <tr><td>价格小号</td><td>0.9rem / 700 / mono</td></tr>
+  </tbody>
+</table>
+
+<h3>3.3 间距/圆角/阴影</h3>
+<table>
+  <thead><tr><th>分类</th><th>变量</th><th>值</th><th>用途</th></tr></thead>
+  <tbody>
+    <tr><td>圆角</td><td><code>--r-sm</code></td><td>6px</td><td>按钮、输入框、Badge</td></tr>
+    <tr><td>圆角</td><td><code>--r-md</code></td><td>10px</td><td>卡片内元素、表格</td></tr>
+    <tr><td>圆角</td><td><code>--r-lg</code></td><td>14px</td><td>卡片、商品卡片</td></tr>
+    <tr><td>圆角</td><td><code>--r-xl</code></td><td>20px</td><td>AI对话卡片、登录卡片</td></tr>
+    <tr><td>阴影</td><td><code>--shadow-sm</code></td><td>0 1px 3px rgba(0,0,0,.06)</td><td>Topbar、轻量卡片</td></tr>
+    <tr><td>阴影</td><td><code>--shadow-md</code></td><td>0 4px 12px rgba(0,0,0,.08)</td><td>Hover卡片</td></tr>
+    <tr><td>阴影</td><td><code>--shadow-lg</code></td><td>0 12px 40px rgba(0,0,0,.12)</td><td>Toast、弹窗</td></tr>
+    <tr><td>阴影</td><td><code>--shadow-brand</code></td><td>0 4px 20px rgba(79,70,229,.2)</td><td>主按钮</td></tr>
+    <tr><td>布局</td><td>Topbar 高度</td><td>56px</td><td>sticky定位</td></tr>
+    <tr><td>布局</td><td>内容最大宽度</td><td>1280px</td><td>居中</td></tr>
+    <tr><td>布局</td><td>侧边栏宽度</td><td>220px</td><td>固定</td></tr>
+  </tbody>
+</table>
+
+<h3>3.4 响应式断点</h3>
+<pre><code>@media (max-width: 768px) {
+  /* Topbar 隐藏导航 */
+  /* grid-3, grid-4 → 单列 */
+  /* grid-2 → 单列 */
+  /* compare-grid → 单列 */
+  /* sidebar 隐藏 */
+  /* layout-with-sidebar → block */
+  /* ai-hero 缩小 */
+}</code></pre>
+
+<!-- ============================================================ -->
+<h2 id="data-models">4. 数据模型</h2>
+
+<h3>4.1 商品 (Product)</h3>
+<pre><code>{
+  id: string          // "P001"
+  name: string        // "Apple iPhone 15 Pro 256GB 钛金属"
+  brand: string       // "Apple"
+  spec: string        // "256GB / 钛金属原色"
+  category: string    // "3C数码" | "美妆护肤" | "日用百货"
+  image: string       // "phone" | "cosmetic" | "headphone" | "appliance"
+  platforms: Platform[]  // 三平台价格数据
+  targetPrice: number    // 用户目标价
+  lowest: number          // 当前最优价
+  sparkline: number[]     // 30天价格数组(30个点)
+}</code></pre>
+
+<h3>4.2 平台价格 (Platform)</h3>
+<pre><code>{
+  name: string       // "拼多多" | "京东" | "淘宝"
+  price: number      // 当前价格
+  prevPrice: number  // 昨日价格
+  trend: string      // "down" | "up" | "flat"
+  delta: number      // 价格变动(负数=降, 正数=升, 0=持平)
+  url: string        // 购买链接
+}</code></pre>
+
+<h3>4.3 监控目标 (MonitoringTarget)</h3>
+<pre><code>{
+  id: string            // "M01"
+  productId: string     // 关联商品ID
+  productName: string
+  targetPrice: number
+  currentPrice: number
+  platform: string
+  status: string        // "achieved" | "monitoring"
+  createdAt: string     // "2026-08-15"
+  trend: string         // "down" | "up" | "flat"
+}</code></pre>
+
+<h3>4.4 价格快照 (PriceSnapshot)</h3>
+<pre><code>{
+  id: string
+  productId: string
+  productName: string
+  platform: string
+  price: number
+  prevPrice: number
+  change: number       // 变动金额
+  trend: string
+  snapshotAt: string   // "2026-09-09 08:00"
+}</code></pre>
+
+<h3>4.5 采购记录 (PurchaseRecord)</h3>
+<pre><code>{
+  id: string           // "PR01"
+  productId: string
+  productName: string
+  platform: string
+  price: number        // 单价
+  qty: number          // 数量
+  total: number        // 总价
+  status: string       // "completed" | "pending"
+  orderDate: string
+  commission: number   // 佣金
+}</code></pre>
+
+<h3>4.6 周报复盘 (WeeklyReview)</h3>
+<pre><code>{
+  weekRange: string        // "2026-09-02 ~ 2026-09-08"
+  totalSavings: number     // 累计节省
+  itemsCompared: number    // 比价次数
+  ordersPlaced: number     // 下单数
+  commissionEarned: number // 佣金收入
+  bestDeals: BestDeal[]
+  trend: string            // "up" | "down"
+  savingsChange: number   // 节省变化百分比
+}
+
+// BestDeal
+{
+  productId: string
+  name: string
+  platform: string
+  saved: number         // 节省金额
+  originalPrice: number
+  finalPrice: number
+}</code></pre>
+
+<h3>4.7 企业采购订单 (EnterpriseOrder)</h3>
+<pre><code>{
+  id: string          // "EO-2026-001"
+  title: string       // 订单标题
+  supplier: string    // 供应商
+  items: number       // 商品数
+  total: number       // 总金额
+  status: string      // "approved" | "pending" | "completed"
+  date: string
+  buyer: string       // 采购人
+}</code></pre>
+
+<h3>4.8 企业采购统计 (EnterpriseStats)</h3>
+<pre><code>{
+  monthlySpend: number
+  monthlyOrders: number
+  avgDiscount: number     // 平均折扣%
+  suppliers: number       // 供应商数
+  spendByCategory: CategorySpend[]
+  supplierCompare: SupplierCompare[]
+}
+
+// CategorySpend
+{ name: string, value: number, pct: number }
+
+// SupplierCompare
+{ name: string, orders: number, total: number, avgTime: number, rating: number }</code></pre>
+
+<h3>4.9 价格预警 (PriceAlert)</h3>
+<pre><code>{
+  id: string            // "M01"
+  productId: string
+  name: string
+  targetPrice: number
+  currentPrice: number
+  platform: string
+  status: string       // "achieved" | "monitoring"
+  enabled: boolean     // 是否开启
+}</code></pre>
+
+<h3>4.10 价格历史 (PriceHistory)</h3>
+<pre><code>{
+  dates: string[]          // ["9/1", "9/2", ... "9/30"] 30天
+  platforms: [
+    { name: string, color: string, data: number[] }
+  ]
+  stats: {
+    highest: number
+    lowest: number
+    avg: number
+    current: number
+  }
+}</code></pre>
+
+<!-- ============================================================ -->
+<h2 id="api-spec">5. API 接口规格</h2>
+
+<div class="note">
+  <div class="label">实现说明</div>
+  原型中所有 API 在 <code>app.js</code> 的 <code>API</code> 对象中以 Mock 方式模拟，包含 500-1100ms 随机延迟和 8%-15% 随机失败率（用于测试骨架屏和错误重试）。工程实现时需替换为真实后端 API。
+</div>
+
+<table>
+  <thead><tr><th>方法</th><th>路径</th><th>参数</th><th>返回</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td>POST</td><td><code>/api/ai/chat</code></td><td>{ query: string }</td><td>{ query, parsed, results: Product[], total }</td><td>AI对话比价</td></tr>
+    <tr><td>GET</td><td><code>/api/products</code></td><td>—</td><td>Product[]</td><td>商品列表</td></tr>
+    <tr><td>GET</td><td><code>/api/products/:id</code></td><td>id</td><td>Product</td><td>商品详情</td></tr>
+    <tr><td>GET</td><td><code>/api/products/:id/price-history</code></td><td>id</td><td>PriceHistory</td><td>30天价格历史</td></tr>
+    <tr><td>GET</td><td><code>/api/monitoring-targets</code></td><td>—</td><td>MonitoringTarget[]</td><td>监控目标列表</td></tr>
+    <tr><td>GET</td><td><code>/api/price-snapshots</code></td><td>—</td><td>PriceSnapshot[]</td><td>价格快照列表</td></tr>
+    <tr><td>GET</td><td><code>/api/purchase-records</code></td><td>—</td><td>PurchaseRecord[]</td><td>采购记录列表</td></tr>
+    <tr><td>GET</td><td><code>/api/weekly-review</code></td><td>—</td><td>WeeklyReview</td><td>周报复盘数据</td></tr>
+    <tr><td>GET</td><td><code>/api/enterprise/orders</code></td><td>—</td><td>EnterpriseOrder[]</td><td>企业采购订单</td></tr>
+    <tr><td>GET</td><td><code>/api/enterprise/stats</code></td><td>—</td><td>EnterpriseStats</td><td>企业采购统计</td></tr>
+    <tr><td>POST</td><td><code>/api/price-alerts</code></td><td>{ productId, targetPrice }</td><td>{ success, id }</td><td>设置价格预警</td></tr>
+  </tbody>
+</table>
+
+<h3>统一错误处理</h3>
+<pre><code>// 错误响应格式
+{
+  code: 500,
+  message: "网络请求失败，请检查网络后重试"
+}
+
+// 前端处理模式:
+// 1. 显示骨架屏 → API请求
+// 2. 成功 → 渲染数据
+// 3. 失败 → 显示空状态 + Toast错误提示(含"重试"按钮)
+// 4. 点击"重试" → 重新执行API请求</code></pre>
+
+<!-- ============================================================ -->
+<h2 id="pages">6. 页面功能规格</h2>
+
+<h3 id="page-index">6.1 首页 (index.html)</h3>
+
+<h4>页面结构</h4>
+<ol>
+  <li><strong>共享 Topbar</strong> — Logo + 导航(AI比价/我的看板/企业采购) + 通知铃铛 + 头像</li>
+  <li><strong>精简 Hero</strong> — 标题"用对话找到全网好价" + 副标题</li>
+  <li><strong>AI 对话卡片</strong> — 消息区(可滚动) + 底部输入栏</li>
+  <li><strong>热门比价</strong> — 3个商品卡片网格</li>
+</ol>
+
+<h4>交互细节</h4>
+<ul>
+  <li><strong>AI对话流程</strong>: 用户输入 → 显示用户气泡 → AI解析中间态(3步流式文本: "正在识别搜索意图..." → "关键词解析..." → "正在匹配三平台...") → 打字动画 → AI回复(含迷你比价卡片)</li>
+  <li><strong>快捷搜索</strong>: 4个快捷标签(iPhone 15 Pro比价/兰蔻小黑瓶/Sony降噪耳机/戴森吸尘器), 点击即发送</li>
+  <li><strong>AI回复内容</strong>: 匹配商品数 + 每个商品的3平台迷你比价卡片(平台名/价格/趋势) + "查看完整比价"按钮(跳转compare.html)</li>
+  <li><strong>热门商品卡片</strong>: 商品图 + 名称 + 最优价 + 趋势Badge + sparkline迷你折线图, 点击跳转detail.html</li>
+  <li><strong>通知铃铛</strong>: 点击Toast提示"您有1条价格预警提醒"</li>
+</ul>
+
+<h4>骨架屏</h4>
+<ul>
+  <li>热门商品: 3个骨架卡片(图片区+标题+价格+sparkline)</li>
+  <li>AI对话: 解析中间态文本 + 打字动画</li>
+</ul>
+
+<h4>错误处理</h4>
+<ul>
+  <li>AI对话失败: Toast错误(含重试按钮)</li>
+  <li>热门商品加载失败: Toast错误(含重试按钮)</li>
+</ul>
+
+<hr>
+
+<h3 id="page-compare">6.2 比价结果页 (compare.html)</h3>
+
+<h4>页面结构</h4>
+<ol>
+  <li><strong>共享 Topbar</strong></li>
+  <li><strong>页面头部</strong> — 返回按钮 + 标题"比价结果" + 副标题(搜索关键词)</li>
+  <li><strong>搜索栏</strong> — 搜索图标按钮 + 输入框 + 筛选按钮</li>
+  <li><strong>商品摘要卡片</strong> — 商品图 + 分类/品牌/规格标签 + 名称 + 当前最优价 + "设置价格预警"按钮</li>
+  <li><strong>三平台比价卡片</strong> — 排序按钮组(价格升序/降序/趋势优先) + 3个平台卡片</li>
+  <li><strong>价格统计</strong> — 4个统计卡片(当前最优价/30天最优价/30天均价/相比最高价节省)</li>
+  <li><strong>相关推荐</strong> — 最多6个商品卡片</li>
+</ol>
+
+<h4>交互细节</h4>
+<ul>
+  <li><strong>URL参数</strong>: <code>?id=商品ID&q=搜索词</code> — id默认P001</li>
+  <li><strong>搜索栏</strong>: 搜索图标可点击(按钮元素), 输入框回车也可搜索, 跳转compare.html?id=&q=</li>
+  <li><strong>排序</strong>: 点击排序按钮即时重排平台卡片(不重新请求API)</li>
+  <li><strong>最优价卡片</strong>: 边框2px绿色, 顶部带"最优价"Badge; 若达到目标价额外显示彩虹Badge"目标达成"+彩虹流光动画</li>
+  <li><strong>原价/折扣</strong>: 有折扣时显示删除线原价+"-X%"绿色Badge; 涨价时显示原价+"+金额"红色Badge</li>
+  <li><strong>购买按钮</strong>: 点击Toast提示"正在跳转至XX平台..."(实际应跳转外链)</li>
+  <li><strong>预警按钮</strong>: 点击跳转detail.html?id=</li>
+  <li><strong>更新时间</strong>: 显示"更新于 M/D HH:MM"</li>
+  <li><strong>相关推荐</strong>: 排除当前商品, 每个卡片带推荐理由Badge(同价位更优/你可能关注/更划算选择/同类热销/品牌推荐/趋势下降中)</li>
+</ol>
+
+<h4>骨架屏</h4>
+<ul>
+  <li>商品摘要: 左侧骨架图片 + 右侧骨架文本行</li>
+  <li>比价卡片: 3个骨架卡片(圆形图标+价格+趋势+块状区域+按钮)</li>
+  <li>统计卡片: 4个骨架统计卡</li>
+  <li>相关推荐: 3个骨架商品卡</li>
+</ul>
+
+<hr>
+
+<h3 id="page-detail">6.3 商品详情页 (detail.html)</h3>
+
+<h4>页面结构</h4>
+<ol>
+  <li><strong>共享 Topbar</strong></li>
+  <li><strong>返回按钮</strong> — "返回首页"</li>
+  <li><strong>面包屑导航</strong> — AI比价 > 比价结果 > 商品详情(比价结果链接带productId)</li>
+  <li><strong>商品信息头部</strong> — 商品图(160x160) + 品牌Badge + 标题 + 规格/分类 + 最优价 + 趋势 + 目标价 + 操作按钮(去购买/收藏/设置价格预警)</li>
+  <li><strong>30天价格走势图</strong> — SVG折线图(三平台) + 图例 + 统计卡片(最优价/最高价/均价/节省)</li>
+  <li><strong>三平台价格对比表</strong> — 表格(平台/当前价/昨日价/变动/趋势/去购买按钮)</li>
+  <li><strong>价格预警表单</strong> — 目标价输入 + 推送渠道(站内必选/微信/短信) + 提交按钮</li>
+  <li><strong>相关推荐</strong> — 3个商品卡片</li>
+</ol>
+
+<h4>交互细节</h4>
+<ul>
+  <li><strong>URL参数</strong>: <code>?id=商品ID</code></li>
+  <li><strong>目标达成</strong>: 当 lowest <= targetPrice, 商品头部卡片显示彩虹流光动画+彩虹Badge"目标已达成"</li>
+  <li><strong>收藏按钮</strong>: Toast成功提示"已加入收藏夹"</li>
+  <li><strong>去购买</strong>: Toast提示"正在跳转至XX平台..."</li>
+  <li><strong>价格走势图</strong>: 纯SVG实现, 三平台不同颜色折线, Y轴价格刻度, X轴日期(每5天显示), 末端圆点</li>
+  <li><strong>预警表单</strong>: 目标价默认填入当前最优价; 提交时按钮显示spinner+"提交中..."; 成功Toast显示目标价+通知渠道; 失败Toast含重试</li>
+  <li><strong>面包屑"比价结果"</strong>: 点击跳转compare.html?id=(带productId)</li>
+  <li><strong>"返回比价"链接</strong>: 同样带productId跳转</li>
+</ol>
+
+<h4>骨架屏</h4>
+<ul>
+  <li>商品头部: 骨架图片 + 骨架Badge + 骨架标题 + 骨架价格 + 3个骨架按钮</li>
+  <li>价格图: 骨架标题 + 骨架块状区域(280px)</li>
+  <li>对比表: 骨架行(3行, 每行: 圆形+文本+文本)</li>
+  <li>相关推荐: 3个骨架商品卡</li>
+</ul>
+
+<hr>
+
+<h3 id="page-dashboard">6.4 我的看板 (dashboard.html)</h3>
+
+<h4>页面结构</h4>
+<ol>
+  <li><strong>共享 Topbar</strong></li>
+  <li><strong>侧边栏+内容区布局</strong></li>
+  <li><strong>页面头部</strong> — 标题 + 副标题 + "导出报告"按钮</li>
+  <li><strong>概览统计</strong> — 4个统计卡片(累计节省/监控商品数/采购订单/佣金收入)</li>
+  <li><strong>Tab切换</strong> — 监控目标/价格快照/采购记录/周报复盘</li>
+  <li><strong>侧边栏</strong> — 数据看板(4个Tab) + 工具(预警通知/我的收藏/个人中心, 跳转profile.html?tab=)</li>
+</ol>
+
+<h4>Tab1: 监控目标</h4>
+<ul>
+  <li>表格列: 商品名称/目标价/当前价/平台/差距/状态/操作</li>
+  <li>达标行: 彩虹流光背景动画</li>
+  <li>差距: 正数红色(差多少), 负数绿色(已低于目标)</li>
+  <li>状态Badge: 已达标(绿色✓) / 监控中(黄色时钟)</li>
+  <li>操作: "查看详情"跳转detail.html?id=</li>
+</ul>
+
+<h4>Tab2: 价格快照</h4>
+<ul>
+  <li>表格列: 商品名称/平台/当前价格/昨日价格/变动/趋势/快照时间</li>
+  <li>变动: +金额(红) / -金额(绿) / 持平(黄)</li>
+</ul>
+
+<h4>Tab3: 采购记录</h4>
+<ul>
+  <li>表格列: 订单号/商品名称/平台/单价/数量/总价/佣金/状态/日期</li>
+  <li>佣金: 蓝色显示</li>
+  <li>状态: 已完成(绿色✓) / 待发货(黄色时钟)</li>
+</ul>
+
+<h4>Tab4: 周报复盘</h4>
+<ul>
+  <li>本周复盘卡片: 周范围 + 4个mini统计(节省/比价次数/下单数/佣金) + 趋势Badge</li>
+  <li>最佳Deal卡片: 3个deal卡片(商品名/平台chip/最终价+删除线原价/节省金额Badge)</li>
+</ul>
+
+<h4>交互细节</h4>
+<ul>
+  <li><strong>Tab切换</strong>: 数据预加载, 切换仅toggle display(无loading)</li>
+  <li><strong>侧边栏同步</strong>: 点击Tab时侧边栏对应项active状态同步</li>
+  <li><strong>导出报告</strong>: Toast成功"看板报告已生成"</li>
+  <li><strong>通知铃铛</strong>: Toast提示"您有2条价格预警提醒"</li>
+</ul>
+
+<hr>
+
+<h3 id="page-admin">6.5 企业采购管理台 (admin.html)</h3>
+
+<h4>页面结构</h4>
+<ol>
+  <li><strong>共享 Topbar</strong></li>
+  <li><strong>企业信息栏</strong> — 企业名 + 企业版Badge + 本月采购额 + 供应商数 + 管理员</li>
+  <li><strong>侧边栏+内容区</strong></li>
+  <li><strong>页面头部</strong> — 标题 + 日期选择按钮 + 导出按钮</li>
+  <li><strong>采购概览统计</strong> — 4卡片(本月采购额/采购订单/平均折扣/合作供应商)</li>
+  <li><strong>支出分类+趋势</strong> — 左:柱状图(分类支出) 右:折线图(6月趋势)</li>
+  <li><strong>供应商对比</strong> — 表格(供应商/订单数/总额/平均时效/评分/操作)</li>
+  <li><strong>最近采购订单</strong> — 表格(订单号/标题/供应商/商品数/总金额/状态/采购人/日期)</li>
+</ol>
+
+<h4>交互细节</h4>
+<ul>
+  <li><strong>日期选择</strong>: 点击Toast提示"日期选择器开发中"</li>
+  <li><strong>侧边栏</strong>: 点击平滑滚动到对应区域(scrollIntoView)</li>
+  <li><strong>评分</strong>: 5星SVG渲染, 已填#f59e0b, 未填#e2e8f0</li>
+  <li><strong>趋势图</strong>: 自定义SVG, 含网格线/Y轴标签/X轴标签/面积填充/末端值标注</li>
+  <li><strong>订单状态</strong>: 已审批(绿色✓) / 待审批(黄色时钟) / 已完成(蓝色✓)</li>
+  <li><strong>系统侧栏菜单</strong>: 组织管理/系统设置 → Toast"功能开发中"</li>
+  <li><strong>查看全部链接</strong>: Toast提示"完整列表开发中"</li>
+  <li><strong>供应商详情按钮</strong>: Toast"供应商详情页面开发中"</li>
+</ul>
+
+<hr>
+
+<h3 id="page-profile">6.6 个人中心 (profile.html)</h3>
+
+<h4>页面结构</h4>
+<ol>
+  <li><strong>共享 Topbar</strong></li>
+  <li><strong>用户信息头部</strong> — 头像(56px) + 用户名 + 手机号/注册时间 + 比价次数/累计节省统计</li>
+  <li><strong>Tab切换</strong> — 比价历史/收藏夹/价格预警/个人信息(各Tab带数量Badge)</li>
+</ol>
+
+<h4>Tab1: 比价历史</h4>
+<ul>
+  <li>列表项: 商品图(48px) + 名称 + 平台/时间 + 价格(绿色)</li>
+  <li>点击跳转detail.html?id=</li>
+</ul>
+
+<h4>Tab2: 收藏夹</h4>
+<ul>
+  <li>列表项: 商品图 + 名称 + "当前最优价" + 价格 + 删除按钮(右上角圆形)</li>
+  <li>删除: Toast成功"已取消收藏", 数量Badge更新</li>
+</ul>
+
+<h4>Tab3: 价格预警</h4>
+<ul>
+  <li>列表项: 状态点(绿=已达成/黄=监控中) + 商品名(可点击) + 目标价/当前价/平台 + 状态Badge + 开关</li>
+  <li>开关: iOS风格toggle, 点击切换并Toast提示</li>
+  <li>商品名点击跳转detail.html?id=</li>
+</ul>
+
+<h4>Tab4: 个人信息</h4>
+<ul>
+  <li>信息行: 头像/昵称/手机号/微信绑定/推送渠道/注册时间</li>
+  <li>操作: 编辑资料(Toast"功能开发中") / 退出登录(Toast成功, 1秒后跳转login.html)</li>
+</ul>
+
+<h4>交互细节</h4>
+<ul>
+  <li><strong>URL参数</strong>: <code>?tab=history|fav|alert|info</code> — 自动激活对应Tab</li>
+  <li><strong>Tab切换</strong>: 移除所有active, 添加目标active</li>
+</ul>
+
+<hr>
+
+<h3 id="page-login">6.7 登录页 (login.html)</h3>
+
+<h4>页面结构</h4>
+<ol>
+  <li><strong>登录卡片</strong> — 居中, max-width 420px</li>
+  <li><strong>头部</strong> — Logo + "欢迎回来" + 副标题</li>
+  <li><strong>Tab切换</strong> — 手机号登录 / 微信扫码</li>
+  <li><strong>手机号表单</strong> — 区号select + 手机号input(11位) + 验证码input + 获取验证码按钮 + 协议勾选 + 登录按钮</li>
+  <li><strong>微信扫码</strong> — 模拟二维码SVG + 扫描线动画 + "请使用微信扫一扫登录"</li>
+  <li><strong>第三方登录</strong> — 支付宝 + QQ</li>
+  <li><strong>底部</strong> — 注册链接 + 返回首页</li>
+</ol>
+
+<h4>交互细节</h4>
+<ul>
+  <li><strong>手机号输入</strong>: 自动过滤非数字字符, 限制11位</li>
+  <li><strong>验证码按钮</strong>: 60秒倒计时, 期间disabled + 文本"Xs后重发"</li>
+  <li><strong>验证</strong>: 手机号<11位 → Toast警告; 验证码<6位 → Toast警告; 未勾选协议 → Toast警告</li>
+  <li><strong>登录提交</strong>: 按钮spinner+"登录中..." → 800ms后Toast成功 → 800ms后跳转index.html</li>
+  <li><strong>注册链接</strong>: Toast"请先通过手机号登录, 系统将自动注册"</li>
+  <li><strong>第三方</strong>: Toast"正在跳转至XX授权页面..."</li>
+  <li><strong>协议链接</strong>: Toast"文档页面开发中"</li>
+  <li><strong>二维码扫描线</strong>: CSS animation 上下移动 2s循环</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="components">7. 组件清单</h2>
+
+<h3>7.1 共享组件</h3>
+<table>
+  <thead><tr><th>组件</th><th>CSS类</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td>Topbar</td><td>.topbar</td><td>sticky顶栏, 含Logo/导航/通知/头像</td></tr>
+    <tr><td>导航链接</td><td>.nav-link .active</td><td>3个主页面切换</td></tr>
+    <tr><td>图标按钮</td><td>.icon-btn</td><td>36px方形, hover变底色</td></tr>
+    <tr><td>头像</td><td>.avatar</td><td>32px圆形, 品牌色渐变背景</td></tr>
+    <tr><td>通知铃铛</td><td>.icon-btn .badge-dot</td><td>右上角红点</td></tr>
+    <tr><td>卡片</td><td>.card</td><td>白底+边框+圆角14px+padding20px</td></tr>
+    <tr><td>按钮-主要</td><td>.btn .btn-primary</td><td>品牌渐变+白字+品牌阴影</td></tr>
+    <tr><td>按钮-轮廓</td><td>.btn .btn-outline</td><td>边框+ink色, hover变品牌色</td></tr>
+    <tr><td>按钮-幽灵</td><td>.btn .btn-ghost</td><td>灰底+ink色</td></tr>
+    <tr><td>按钮-小号</td><td>.btn .btn-sm</td><td>缩小padding</td></tr>
+    <tr><td>Badge</td><td>.badge .badge-*</td><td>brand/success/danger/warning/info/muted</td></tr>
+    <tr><td>Chip</td><td>.chip</td><td>小标签, 灰底</td></tr>
+    <tr><td>表格</td><td>.table-wrap > table</td><td>圆角边框, hover行高亮</td></tr>
+    <tr><td>统计卡片</td><td>.stat-card</td><td>图标+大数字+标签+变化</td></tr>
+    <tr><td>骨架屏</td><td>.skeleton</td><td>shimmer动画, 含text/block/circle/row变体</td></tr>
+    <tr><td>Toast</td><td>.toast-container > .toast</td><td>右上角固定, 4种类型, 含重试按钮</td></tr>
+    <tr><td>Spinner</td><td>.spinner</td><td>16px旋转圆圈</td></tr>
+    <tr><td>空状态</td><td>.empty-state</td><td>居中图标+文本</td></tr>
+    <tr><td>侧边栏</td><td>.sidebar</td><td>220px固定, sticky, 可滚动</td></tr>
+    <tr><td>Tab</td><td>.tabs > .tab .active</td><td>底部边框高亮</td></tr>
+    <tr><td>排序按钮组</td><td>.sort-group > .sort-btn</td><td>胶囊容器内切换</td></tr>
+    <tr><td>返回按钮</td><td>.back-btn</td><td>轮廓按钮+箭头图标</td></tr>
+    <tr><td>分页</td><td>.divider</td><td>1px水平线</td></tr>
+  </tbody>
+</table>
+
+<h3>7.2 专用组件</h3>
+<table>
+  <thead><tr><th>组件</th><th>页面</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td>AI对话卡片</td><td>index</td><td>.chat-card, 含消息区+输入栏</td></tr>
+    <tr><td>对话消息</td><td>index</td><td>.chat-msg .ai/.user, 头像+气泡</td></tr>
+    <tr><td>快捷标签</td><td>index</td><td>.chat-quick-pill, 品牌色胶囊</td></tr>
+    <tr><td>打字动画</td><td>index</td><td>.chat-typing, 3个圆点弹跳</td></tr>
+    <tr><td>比价卡片</td><td>compare</td><td>.compare-card .best, 最优价高亮+彩虹流光</td></tr>
+    <tr><td>彩虹流光</td><td>compare/detail/dashboard</td><td>.rainbow-sweep, 品牌色渐变流动动画</td></tr>
+    <tr><td>彩虹Badge</td><td>compare/detail</td><td>.rainbow-badge, 品牌色渐变胶囊</td></tr>
+    <tr><td>Sparkline</td><td>index/compare/detail</td><td>迷你SVG折线图, 含面积填充</td></tr>
+    <tr><td>价格走势图</td><td>detail</td><td>大SVG折线图, 三平台, 含轴标签</td></tr>
+    <tr><td>柱状图</td><td>admin</td><td>SVG水平柱状图, 分类支出</td></tr>
+    <tr><td>趋势图</td><td>admin</td><td>SVG折线图, 含网格/面积/末端标注</td></tr>
+    <tr><td>商品卡片</td><td>index/compare/detail</td><td>.product-card, 图片+信息+hover上浮</td></tr>
+    <tr><td>Deal卡片</td><td>dashboard</td><td>.deal-card, 最佳性价比订单</td></tr>
+    <tr><td>历史项</td><td>profile</td><td>.history-item, 横向布局, hover边框变色</td></tr>
+    <tr><td>预警开关</td><td>profile</td><td>.alert-toggle, iOS风格toggle</td></tr>
+    <tr><td>登录卡片</td><td>login</td><td>.login-card, 含Tab+表单+第三方</td></tr>
+    <tr><td>二维码</td><td>login</td><td>.qr-box, SVG模拟+扫描线动画</td></tr>
+    <tr><td>验证码按钮</td><td>login</td><td>.code-btn, 倒计时disabled</td></tr>
+  </tbody>
+</table>
+
+<h3>7.3 图标系统</h3>
+<p>全部使用纯内联SVG, 无emoji, 无外部依赖。共 <strong>40+</strong> 个图标, 定义在 <code>app.js</code> 的 <code>Icon</code> 对象中。</p>
+<pre><code>// 调用方式
+Icon.search(20)       // 返回20px大小的搜索图标SVG字符串
+Icon.sparkles(16)     // 返回16px大小的闪光图标
+Icon.trendingDown(14) // 返回14px大小的下降趋势图标
+
+// 两种注入方式
+// 1. JS直接innerHTML
+document.getElementById('icon').innerHTML = Icon.search(20);
+
+// 2. HTML data属性自动注入 (detail.html使用)
+&lt;span data-i="search" data-s="20"&gt;&lt;/span&gt;
+document.querySelectorAll('[data-i]').forEach(el => {
+  el.innerHTML = Icon[el.dataset.i](parseInt(el.dataset.s || '20'));
+});
+
+// 3. data-icon属性 (dashboard/admin使用)
+&lt;span data-icon="download" data-size="16"&gt;&lt;/span&gt;
+document.querySelectorAll('[data-icon]').forEach(el => {
+  el.innerHTML = Icon[el.dataset.icon](parseInt(el.dataset.size) || 16);
+});</code></pre>
+
+<!-- ============================================================ -->
+<h2 id="interactions">8. 交互模式</h2>
+
+<h3>8.1 数据加载标准流程</h3>
+<pre><code>1. 显示骨架屏 (skeleton)
+   ↓
+2. 调用 API
+   ↓
+   ├─ 成功 → 渲染数据
+   │
+   └─ 失败 → 显示空状态 + Toast错误(含"重试"按钮)
+              ↓
+              点击"重试" → 回到步骤1</code></pre>
+
+<pre><code>// 标准加载函数 (app.js中的loadData)
+loadData(container, apiFn, renderFn, {
+  skeleton: '骨架屏HTML',
+  errorHtml: '错误状态HTML'
+});</code></pre>
+
+<h3>8.2 骨架屏规范</h3>
+<ul>
+  <li>使用 shimmer 动画 (1.4s ease-in-out infinite)</li>
+  <li>背景渐变: #e8eaef 25% → #f0f2f7 50% → #e8eaef 75%</li>
+  <li>变体: .skeleton-text(14px高), .skeleton-block(120px高), .skeleton-circle(40px圆), .skeleton-row(行布局)</li>
+  <li>宽度类: .w-30, .w-40, .w-60, .w-80</li>
+</ul>
+
+<h3>8.3 Toast 通知规范</h3>
+<table>
+  <thead><tr><th>类型</th><th>颜色</th><th>场景</th><th>持续时间</th></tr></thead>
+  <tbody>
+    <tr><td>success</td><td>绿色</td><td>操作成功(收藏/登录/导出/预警设置)</td><td>3s</td></tr>
+    <tr><td>error</td><td>红色</td><td>API失败/加载失败, 含重试按钮</td><td>6s</td></tr>
+    <tr><td>warning</td><td>黄色</td><td>输入验证失败(手机号/验证码/协议)</td><td>4s</td></tr>
+    <tr><td>info</td><td>蓝色</td><td>通知/功能开发中提示</td><td>3s</td></tr>
+  </tbody>
+</table>
+
+<h3>8.4 价格趋势视觉规范</h3>
+<table>
+  <thead><tr><th>趋势</th><th>颜色</th><th>图标</th><th>文本</th><th>CSS类</th></tr></thead>
+  <tbody>
+    <tr><td>降价 down</td><td>#059669 绿</td><td>arrowDown</td><td>"降价"</td><td>.price-down / .trend-down</td></tr>
+    <tr><td>涨价 up</td><td>#dc2626 红</td><td>arrowUp</td><td>"涨价"</td><td>.price-up / .trend-up</td></tr>
+    <tr><td>持平 flat</td><td>#d97706 黄</td><td>minus</td><td>"持平"</td><td>.price-flat / .trend-flat</td></tr>
+  </tbody>
+</table>
+
+<h3>8.5 目标达成彩带动画</h3>
+<ul>
+  <li>触发条件: 商品 lowest <= targetPrice</li>
+  <li>效果: 顶部3px品牌色渐变流光条(5s linear infinite)</li>
+  <li>渐变色: #6366f1 → #818cf8 → #a78bfa → #818cf8 → #6366f1</li>
+  <li>Badge: 彩虹胶囊 "✨ 目标达成" / "✨ 目标已达成"</li>
+  <li>应用位置: compare卡片(.compare-card.best.rainbow-sweep)、detail头部卡片、dashboard表格行</li>
+</ul>
+
+<h3>8.6 响应式策略</h3>
+<ul>
+  <li>断点: 768px</li>
+  <li>移动端: 隐藏Topbar导航、侧边栏; 网格变单列; Hero缩小</li>
+  <li>表格: 水平滚动(.table-wrap overflow-x:auto)</li>
+  <li>图表: SVG viewBox自适应, max-height限制</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="dev-guide">9. 开发指南</h2>
+
+<h3>9.1 技术栈建议</h3>
+<table>
+  <thead><tr><th>层</th><th>建议</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td>前端框架</td><td>React / Vue 3 / Next.js</td><td>组件化开发, 复用原型CSS</td></tr>
+    <tr><td>样式方案</td><td>Tailwind CSS / CSS Modules / styled-components</td><td>将CSS变量映射到配置</td></tr>
+    <tr><td>图表</td><td>Recharts / Chart.js / ECharts</td><td>替换手写SVG, 保持视觉一致</td></tr>
+    <tr><td>图标</td><td>lucide-react / @vueicons/lucide</td><td>原型图标基于Lucide/Feather风格</td></tr>
+    <tr><td>状态管理</td><td>Zustand / Pinia / Redux Toolkit</td><td>商品/用户/预警状态</td></tr>
+    <tr><td>API层</td><td>fetch / axios + SWR / TanStack Query</td><td>含缓存/重试/骨架屏</td></tr>
+    <tr><td>后端</td><td>Node.js / Python / Go</td><td>RESTful API, 见第5节</td></tr>
+    <tr><td>数据库</td><td>PostgreSQL / MySQL</td><td>见第4节数据模型</td></tr>
+    <tr><td>认证</td><td>JWT + 手机验证码</td><td>登录见6.7节</td></tr>
+  </tbody>
+</table>
+
+<h3>9.2 CSS变量迁移</h3>
+<pre><code>/* 将 styles.css 的 :root 变量直接迁移到框架配置 */
+/* Tailwind 示例: tailwind.config.js */
+module.exports = {
+  theme: {
+    extend: {
+      colors: {
+        brand: { 1: '#4f46e5', 2: '#6366f1' },
+        'price-down': '#059669',
+        'price-up': '#dc2626',
+        'price-flat': '#d97706',
+      },
+      borderRadius: { sm: '6px', md: '10px', lg: '14px', xl: '20px' },
+    }
+  }
+}</code></pre>
+
+<h3>9.3 组件拆分建议</h3>
+<pre><code>src/components/
+├── shared/
+│   ├── Topbar.tsx          # 共享顶栏
+│   ├── Toast.tsx           # 通知系统
+│   ├── Skeleton.tsx        # 骨架屏(含变体)
+│   ├── StatCard.tsx        # 统计卡片
+│   ├── PriceTag.tsx        # 价格+趋势显示
+│   ├── Sparkline.tsx       # 迷你折线图
+│   ├── Badge.tsx           # Badge组件
+│   ├── EmptyState.tsx      # 空状态
+│   └── Sidebar.tsx         # 侧边栏
+├── chat/
+│   ├── ChatCard.tsx        # AI对话容器
+│   ├── ChatMessage.tsx     # 消息气泡
+│   ├── QuickPills.tsx      # 快捷标签
+│   └── TypingIndicator.tsx # 打字动画
+├── product/
+│   ├── ProductCard.tsx     # 商品卡片
+│   ├── CompareCard.tsx     # 比价卡片
+│   ├── PriceChart.tsx      # 价格走势图
+│   └── AlertForm.tsx       # 价格预警表单
+├── dashboard/
+│   ├── TargetTable.tsx     # 监控目标表
+│   ├── SnapshotTable.tsx  # 价格快照表
+│   ├── PurchaseTable.tsx  # 采购记录表
+│   └── ReviewPanel.tsx    # 周报复盘
+├── admin/
+│   ├── CategoryChart.tsx   # 支出分类图
+│   ├── TrendChart.tsx     # 支出趋势图
+│   ├── SupplierTable.tsx  # 供应商对比表
+│   └── OrderTable.tsx     # 采购订单表
+└── auth/
+    ├── LoginForm.tsx       # 手机号登录表单
+    ├── WechatQR.tsx        # 微信二维码
+    └── ThirdPartyLogin.tsx # 第三方登录</code></pre>
+
+<h3>9.4 开发优先级</h3>
+<table>
+  <thead><tr><th>阶段</th><th>页面</th><th>优先级</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td>P0</td><td>login + index</td><td>最高</td><td>核心入口: 登录+AI对话</td></tr>
+    <tr><td>P0</td><td>compare + detail</td><td>最高</td><td>核心流程: 比价+详情+预警</td></tr>
+    <tr><td>P1</td><td>profile</td><td>高</td><td>用户中心: 历史+收藏+预警</td></tr>
+    <tr><td>P1</td><td>dashboard</td><td>高</td><td>个人看板: 监控+快照+采购+复盘</td></tr>
+    <tr><td>P2</td><td>admin</td><td>中</td><td>企业采购: 统计+供应商+订单</td></tr>
+  </tbody>
+</table>
+
+<h3>9.5 注意事项</h3>
+<ul>
+  <li><strong>XSS防护</strong>: 原型中使用 <code>escapeHtml()</code> 函数转义用户输入, 工程实现时使用框架内置转义</li>
+  <li><strong>价格格式化</strong>: 使用 <code>¥ + toLocaleString('zh-CN')</code> 格式, 注意整数无小数</li>
+  <li><strong>URL参数</strong>: 所有跨页跳转需正确传递 <code>id</code> 和 <code>q</code> 参数, 使用 <code>encodeURIComponent</code></li>
+  <li><strong>骨架屏</strong>: 每个异步数据区域都必须有骨架屏, 不能直接显示空白</li>
+  <li><strong>错误重试</strong>: Toast错误提示必须包含可点击的"重试"按钮</li>
+  <li><strong>平台颜色</strong>: 淘宝#ff6a00, 京东#1677ff, 拼多多#e02130, 全局统一</li>
+  <li><strong>图标</strong>: 全部内联SVG, 不使用emoji, 不依赖外部图标库</li>
+  <li><strong>商品图片</strong>: 使用Unsplash占位图, 工程实现替换为CDN商品图</li>
+  <li><strong>动画性能</strong>: 彩虹流光使用CSS animation transform/opacity, 避免重排</li>
+  <li><strong>表格响应式</strong>: 使用 <code>overflow-x:auto</code> 而非隐藏列</li>
+</ul>
+
+<hr>
+
+<div class="note">
+  <div class="label">交付清单</div>
+  本文档连同以下原型文件一起交付给 Trae Code 进行工程实现:
+  <ul>
+    <li><code>DEVELOPMENT_SPEC.html</code> — 本开发交接规格文档</li>
+    <li><code>styles.css</code> — 完整CSS设计系统(可直接迁移)</li>
+    <li><code>app.js</code> — Mock数据+API模拟+图标库+工具函数(可参照实现)</li>
+    <li><code>index.html</code> — 首页原型(AI对话)</li>
+    <li><code>compare.html</code> — 比价结果页原型</li>
+    <li><code>detail.html</code> — 商品详情页原型</li>
+    <li><code>dashboard.html</code> — 我的看板原型</li>
+    <li><code>admin.html</code> — 企业采购管理台原型</li>
+    <li><code>profile.html</code> — 个人中心原型</li>
+    <li><code>login.html</code> — 登录页原型</li>
+  </ul>
+</div>
+
+</div>
+</body>
+</html>
