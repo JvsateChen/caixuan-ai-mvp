@@ -15,6 +15,7 @@ export interface AuthUser {
   phone: string;
   nickname: string;
   role: string;
+  enterpriseId?: string;
 }
 
 /** 生成 JWT */

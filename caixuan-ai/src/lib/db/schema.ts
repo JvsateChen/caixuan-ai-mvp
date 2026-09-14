@@ -199,4 +199,51 @@ CREATE TABLE IF NOT EXISTS verification_codes (
   created_at TEXT DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_codes_phone ON verification_codes(phone, expires_at);
+
+-- ============================================================
+-- P2 企业模块扩展表
+-- ============================================================
+
+-- 供应商
+CREATE TABLE IF NOT EXISTS suppliers (
+  id           TEXT PRIMARY KEY,
+  name         TEXT NOT NULL,
+  category     TEXT,
+  contact      TEXT,
+  phone        TEXT,
+  rating       REAL DEFAULT 0,
+  total_orders INTEGER DEFAULT 0,
+  total_amount REAL DEFAULT 0,
+  status       TEXT DEFAULT 'active',
+  created_at   TEXT DEFAULT (datetime('now')),
+  updated_at   TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_suppliers_category ON suppliers(category);
+
+-- 预算
+CREATE TABLE IF NOT EXISTS budgets (
+  id           TEXT PRIMARY KEY,
+  year         INTEGER NOT NULL,
+  department   TEXT,
+  total        REAL NOT NULL,
+  spent        REAL DEFAULT 0,
+  status       TEXT DEFAULT 'active',
+  created_at   TEXT DEFAULT (datetime('now')),
+  updated_at   TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_budgets_year_dept ON budgets(year, department);
+
+-- 订单审批记录
+CREATE TABLE IF NOT EXISTS approval_records (
+  id           TEXT PRIMARY KEY,
+  order_id     TEXT NOT NULL,
+  approver_id  TEXT,
+  approver_name TEXT,
+  action       TEXT,
+  comment      TEXT,
+  created_at   TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (order_id) REFERENCES enterprise_orders(id)
+);
+CREATE INDEX IF NOT EXISTS idx_approvals_order ON approval_records(order_id);
 `;
+

@@ -19,7 +19,6 @@ import {
   Cell,
 } from 'recharts';
 import {
-  Building2,
   Wallet,
   TrendingDown,
   Layers,
@@ -28,7 +27,6 @@ import {
   Clock,
   Package,
 } from 'lucide-react';
-import Topbar from '@/components/Topbar';
 import { QueryState } from '@/components/QueryState';
 import { SkeletonTable, SkeletonStatCards } from '@/components/Skeleton';
 import { Badge, EmptyState } from '@/components/ui/Badge';
@@ -36,69 +34,17 @@ import { StatCard } from '@/components/ui/PriceTag';
 import { SectionHeader } from '@/components/ui/Buttons';
 import { api } from '@/lib/api';
 import type { EnterpriseOrder, EnterpriseStats } from '@/lib/types';
-import { formatPrice, formatWan, cx } from '@/lib/utils';
+import { formatPrice, formatWan } from '@/lib/utils';
 
 const BAR_COLORS = ['#4f46e5', '#6366f1', '#0ea5e9', '#06b6d4'];
 
-const SIDEBAR = [
-  { label: '采购概览', active: true },
-  { label: '订单管理' },
-  { label: '供应商管理' },
-  { label: '审批中心' },
-  { label: '数据分析' },
-  { label: '预算管理' },
-  { label: '系统设置' },
-];
-
 export default function AdminPage() {
   return (
-    <div className="app-shell">
-      <Topbar />
-      {/* 企业信息条 */}
-      <div className="enterprise-bar">
-        <div className="ent-left">
-          <span className="ent-icon">
-            <Building2 size={18} />
-          </span>
-          <span className="ent-name">采选集团 · 总部</span>
-          <Badge variant="brand">企业版</Badge>
-        </div>
-        <div className="ent-right">
-          <span>本月采购: <strong>¥26.8万</strong></span>
-          <span className="ent-divider" />
-          <span>订单: <strong>12</strong></span>
-          <span className="ent-divider" />
-          <span>供应商: <strong>3</strong></span>
-          <span className="ent-divider" />
-          <span className="ent-admin">
-            管理员: <strong>张明</strong>
-          </span>
-        </div>
-      </div>
-
-      <div className="layout-with-sidebar">
-        {/* Sidebar */}
-        <aside className="sidebar">
-          <div className="sidebar-section">采购管理</div>
-          {SIDEBAR.map((item) => (
-            <div
-              key={item.label}
-              className={cx('sidebar-item', item.active && 'active')}
-            >
-              {item.label}
-            </div>
-          ))}
-          <div className="sidebar-section">系统</div>
-          <div className="sidebar-item">通知中心</div>
-          <div className="sidebar-item">帮助文档</div>
-        </aside>
-
-        {/* Main */}
-        <main className="sidebar-content">
-          <h1 className="page-title">企业采购概览</h1>
-          <p className="page-subtitle">
-            统一管理企业采购订单、供应商对比、支出分析与预算控制
-          </p>
+    <>
+      <h1 className="page-title">企业采购概览</h1>
+      <p className="page-subtitle">
+        统一管理企业采购订单、供应商对比、支出分析与预算控制
+      </p>
 
           {/* 概览统计卡 */}
           <QueryState
@@ -311,9 +257,7 @@ export default function AdminPage() {
               }}
             </QueryState>
           </section>
-        </main>
-      </div>
-    </div>
+    </>
   );
 }
 

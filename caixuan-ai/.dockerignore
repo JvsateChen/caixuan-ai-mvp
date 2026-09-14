@@ -1,0 +1,40 @@
+# 依赖与构建产物
+node_modules
+.next
+out
+dist
+
+# 数据库 (运行时挂载, 不打入镜像)
+*.db
+*.db-journal
+data/
+
+# 测试与文档
+tests
+*.test.ts
+*.spec.ts
+coverage
+__tests__
+
+# 环境与密钥
+.env
+.env.*
+!.env.example
+
+# 版本控制与IDE
+.git
+.gitignore
+.github
+.vscode
+.idea
+
+# 日志
+*.log
+npm-debug.log*
+
+# 系统
+.DS_Store
+Thumbs.db
+
+# 原型 (非运行时需要)
+caixuan-ai-prototype
