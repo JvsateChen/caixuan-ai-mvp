@@ -1,0 +1,80 @@
+# ============================================================
+# 采选AI平台 · Docker 全量自部署编排
+# 用法: docker compose up -d --build
+# ============================================================
+
+services:
+  caixuan-ai:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: caixuan-ai
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      # JWT 密钥 (生产环境务必修改)
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-caixuan-ai-prod-secret-please-change}
+      # SQLite 数据库路径 (挂载到持久卷)
+      DATABASE_URL: file:/app/data/caixuan.db
+      # 价格预警巡检 (默认开启, 每 30 分钟)
+      CRON_PRICE_CHECK: ${CRON_PRICE_CHECK:-true}
+      # 通知推送 (留空则仅站内信)
+      DINGTALK_WEBHOOK: ${DINGTALK_WEBHOOK:-}
+      WECOM_WEBHOOK: ${WECOM_WEBHOOK:-}
+      # LLM 服务 (留空则走规则引擎)
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      # 时区
+      TZ: Asia/Shanghai
+    volumes:
+      # SQLite 持久化 (数据不随容器销毁丢失)
+      - caixuan-data:/app/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/popular-searches').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # 价格预警定时巡检 (轻量 sidecar, 每 30 分钟调用一次)
+  cron:
+    image: alpine:3.20
+    container_name: caixuan-cron
+    restart: unless-stopped
+    depends_on:
+      caixuan-ai:
+        condition: service_healthy
+    environment:
+      CRON_PRICE_CHECK: ${CRON_PRICE_CHECK:-true}
+      CRON_SECRET: ${CRON_SECRET:-}
+      TZ: Asia/Shanghai
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        apk add --no-cache curl > /dev/null 2>&1
+        echo "价格巡检 cron 启动, 每 30 分钟执行一次"
+        AUTH=""
+        if [ -n "$$CRON_SECRET" ]; then AUTH="-H authorization:Bearer $$CRON_SECRET"; fi
+        while true; do
+          if [ "$$CRON_PRICE_CHECK" = "true" ]; then
+            curl -fsS $$AUTH http://caixuan-ai:3000/api/cron/price-check || echo "[cron] 巡检调用失败 $$(date)"
+          fi
+          sleep 1800
+        done
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+volumes:
+  caixuan-data:
+    driver: local
