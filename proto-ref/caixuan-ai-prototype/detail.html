@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>商品详情 · 采选AI</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    html { scroll-behavior: smooth; }
+    .breadcrumb { display:flex; align-items:center; gap:4px; font-size:.82rem; color:var(--muted); margin-bottom:16px; flex-wrap:wrap; }
+    .breadcrumb a { color:var(--muted); padding:2px 6px; border-radius:var(--r-sm); transition:all .2s; }
+    .breadcrumb a:hover { background:var(--brand-soft); color:var(--brand-1); }
+    .breadcrumb .crumb-sep { color:var(--muted-2); display:inline-flex; align-items:center; }
+    .breadcrumb .crumb-current { color:var(--ink-2); font-weight:600; padding:2px 6px; }
+    .detail-title { font-size:1.5rem; font-weight:700; margin:10px 0 6px; line-height:1.3; }
+    .meta-line { display:flex; align-items:center; gap:6px; }
+    .chart-container { width:100%; overflow-x:auto; }
+    .product-img svg { display:block; }
+    .icon-inline { display:inline-flex; align-items:center; vertical-align:middle; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- 共享 Topbar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <a href="index.html" class="logo">
+          <span class="logo-mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18l-2 12H5L3 3z"/><path d="M3 3l1.5-2h15L21 3"/><circle cx="9" cy="20" r="1"/><circle cx="17" cy="20" r="1"/></svg></span>
+          采选AI
+        </a>
+      </div>
+      <nav class="topbar-nav">
+        <a href="index.html" class="nav-link active">AI比价</a>
+        <a href="dashboard.html" class="nav-link">我的看板</a>
+        <a href="admin.html" class="nav-link">企业采购</a>
+      </nav>
+      <div class="topbar-right">
+        <button class="icon-btn" id="bellBtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="badge-dot"></span></button>
+        <a href="profile.html" class="avatar" style="text-decoration:none">CX</a>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <!-- 返回按钮 -->
+      <a href="index.html" class="back-btn" style="margin-bottom:12px"><span class="icon-inline" data-i="arrowLeft" data-s="16"></span> 返回首页</a>
+
+      <!-- 区域1: 面包屑导航 -->
+      <nav class="breadcrumb">
+        <a href="index.html">AI比价</a>
+        <span class="crumb-sep" data-i="chevronRight" data-s="14"></span>
+        <a href="compare.html" id="crumbCompare">比价结果</a>
+        <span class="crumb-sep" data-i="chevronRight" data-s="14"></span>
+        <span class="crumb-current">商品详情</span>
+      </nav>
+
+      <!-- 区域2: 商品信息头部 -->
+      <div id="header-area"></div>
+
+      <!-- 区域3 + 区域4: 30天价格走势图 + 价格统计卡片 -->
+      <div id="price-area" style="margin-top:24px"></div>
+
+      <!-- 区域5: 三平台价格对比表 -->
+      <div class="section-header" style="margin-top:24px">
+        <h2><span class="icon-inline" data-i="filter" data-s="18"></span> 三平台价格对比</h2>
+        <span class="text-muted text-sm">实时比价 · 多平台</span>
+      </div>
+      <div id="table-area"></div>
+
+      <!-- 区域6: 价格预警设置 -->
+      <div class="card" id="alert-card" style="margin-top:24px">
+        <div class="card-header">
+          <div class="card-title" style="display:inline-flex;align-items:center;gap:6px"><span class="icon-inline" data-i="target" data-s="18"></span> 设置价格预警</div>
+        </div>
+        <form id="alert-form">
+          <div class="form-group">
+            <label class="form-label" for="alert-price">目标价格 (¥)</label>
+            <input type="number" class="form-input" id="alert-price" min="1" step="1" placeholder="输入您期望的目标价格">
+          </div>
+          <div class="form-group">
+            <label class="form-label">推送渠道</label>
+            <div style="display:flex;gap:16px;flex-wrap:wrap">
+              <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+                <input type="checkbox" id="ch-inapp" checked disabled> <span class="text-sm">站内消息</span>
+                <span class="badge badge-muted" style="font-size:0.65rem;padding:1px 5px">必选</span>
+              </label>
+              <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+                <input type="checkbox" id="ch-wechat"> <span class="text-sm">微信通知</span>
+              </label>
+              <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+                <input type="checkbox" id="ch-sms"> <span class="text-sm">短信通知</span>
+              </label>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary" id="alert-submit"><span class="icon-inline" data-i="bell" data-s="16"></span> 开启预警</button>
+        </form>
+      </div>
+
+      <!-- 区域7: 相关推荐商品 -->
+      <div class="section-header" style="margin-top:24px">
+        <h2><span class="icon-inline" data-i="sparkles" data-s="18"></span> 相关推荐</h2>
+        <a href="#" class="link-more" id="backToCompareLink">返回比价 <span class="icon-inline" data-i="chevronRight" data-s="14"></span></a>
+      </div>
+      <div id="related-area"></div>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      /* ---- URL 参数 ---- */
+      var productId = new URLSearchParams(location.search).get('id') || 'P001';
+
+      /* ---- 注入静态图标 (纯SVG, 无emoji) ---- */
+      document.querySelectorAll('[data-i]').forEach(function (el) {
+        el.innerHTML = Icon[el.dataset.i](parseInt(el.dataset.s || '20', 10));
+      });
+
+      /* ---- 返回比价链接(带productId) ---- */
+      document.getElementById('backToCompareLink').addEventListener('click', function (e) {
+        e.preventDefault();
+        window.location.href = 'compare.html?id=' + encodeURIComponent(productId);
+      });
+
+      /* ---- 面包屑"比价结果"链接(带productId) ---- */
+      document.getElementById('crumbCompare').addEventListener('click', function (e) {
+        e.preventDefault();
+        window.location.href = 'compare.html?id=' + encodeURIComponent(productId);
+      });
+
+      /* ---- 通知铃铛 ---- */
+      document.getElementById('bellBtn').addEventListener('click', function () {
+        Toast.info('通知中心', '您有 1 条价格预警提醒：iPhone 15 Pro 已降至目标价');
+      });
+
+      /* ---- 工具方法 ---- */
+      function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+      }
+      function lowestPlatform(p) {
+        var low = p.platforms[0];
+        p.platforms.forEach(function (pl) { if (pl.price < low.price) low = pl; });
+        return low;
+      }
+      function trendBadgeClass(trend) {
+        if (trend === 'down') return 'badge-success';
+        if (trend === 'up') return 'badge-danger';
+        return 'badge-warning';
+      }
+      function errState(msg) {
+        return '<div class="empty-state">' + Icon.alertTriangle(32) + '<p>' + msg + '</p></div>';
+      }
+      function statCard(bg, color, icon, valueClass, value, label, valueColor) {
+        var valStyle = valueColor ? ' style="color:' + valueColor + '"' : '';
+        return '' +
+          '<div class="stat-card">' +
+            '<div class="stat-icon" style="background:' + bg + ';color:' + color + '">' + icon + '</div>' +
+            '<div class="stat-value ' + valueClass + '"' + valStyle + '>' + value + '</div>' +
+            '<div class="stat-label">' + label + '</div>' +
+          '</div>';
+      }
+
+      /* ---- 容器引用 ---- */
+      var headerArea = document.getElementById('header-area');
+      var priceArea = document.getElementById('price-area');
+      var tableArea = document.getElementById('table-area');
+      var relatedArea = document.getElementById('related-area');
+
+      /* ---- 区域2: 商品信息头部 ---- */
+      function renderProductHeader(p) {
+        var lp = lowestPlatform(p);
+        var trend = lp.trend;
+        var achieved = p.lowest <= p.targetPrice;
+        var cardClass = achieved ? 'card rainbow-sweep' : 'card';
+        headerArea.innerHTML = '' +
+          '<div class="' + cardClass + '">' +
+            '<div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap">' +
+              '<div style="flex-shrink:0;width:160px;height:160px;border:1px solid var(--rule);border-radius:var(--r-md);overflow:hidden;line-height:0">' + productPlaceholder(p.image, 160) + '</div>' +
+              '<div style="flex:1;min-width:240px">' +
+                '<span class="badge badge-brand">' + escapeHtml(p.brand) + '</span>' +
+                '<h1 class="detail-title">' + escapeHtml(p.name) + '</h1>' +
+                '<div class="text-muted text-sm meta-line" style="margin-bottom:14px">' + Icon.tag(14) + ' ' + escapeHtml(p.spec) + ' · ' + escapeHtml(p.category) + '</div>' +
+                '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:6px">' +
+                  '<span class="price price-lg price-down">' + Utils.formatPrice(p.lowest) + '</span>' +
+                  '<span class="price-trend ' + Utils.trendClass(trend) + '">' + Utils.trendIcon(trend, 14) + ' ' + Utils.trendText(trend) + '</span>' +
+                  (achieved ? '<span class="rainbow-badge">' + Icon.sparkles(12) + ' 目标已达成</span>' : '') +
+                '</div>' +
+                '<div class="text-muted text-sm meta-line" style="margin-bottom:18px">' + Icon.target(14) + ' 目标价 ' + Utils.formatPrice(p.targetPrice) + '</div>' +
+                '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+                  '<a href="' + lp.url + '" class="btn btn-primary" id="buyBtn">' + Icon.externalLink(16) + ' 去购买</a>' +
+                  '<button class="btn btn-outline" id="favBtn">' + Icon.heart(16) + ' 收藏</button>' +
+                  '<a href="#alert-card" class="btn btn-outline">' + Icon.target(16) + ' 设置价格预警</a>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+          '</div>';
+        var buyBtn = document.getElementById('buyBtn');
+        if (buyBtn) buyBtn.addEventListener('click', function (e) { e.preventDefault(); Toast.info('跳转购买', '正在跳转至' + lp.name + '平台...'); });
+        var favBtn = document.getElementById('favBtn');
+        if (favBtn) favBtn.addEventListener('click', function () { Toast.success('已收藏', '商品已加入您的收藏夹'); });
+        document.title = p.name + ' · 采选AI';
+      }
+
+      /* ---- 区域5: 三平台价格对比表 ---- */
+      function renderCompareTable(p) {
+        var rows = p.platforms.map(function (pl) {
+          var cls = Utils.trendClass(pl.trend);
+          var delta = pl.delta === 0
+            ? '<span class="price-trend flat">' + Icon.minus(12) + ' 持平</span>'
+            : '<span class="price-trend ' + cls + '">' + Utils.trendIcon(pl.trend, 12) + ' ' + Utils.formatPrice(Math.abs(pl.delta)) + '</span>';
+          var color = PLATFORM_COLORS[pl.name] || '#94a3b8';
+          return '' +
+            '<tr>' +
+              '<td><span style="display:inline-flex;align-items:center;gap:6px"><span class="chart-legend-dot" style="background:' + color + '"></span>' + escapeHtml(pl.name) + '</span></td>' +
+              '<td><span class="price price-md ' + cls + '">' + Utils.formatPrice(pl.price) + '</span></td>' +
+              '<td class="text-muted font-mono">' + Utils.formatPrice(pl.prevPrice) + '</td>' +
+              '<td>' + delta + '</td>' +
+              '<td><span class="price-trend ' + cls + '">' + Utils.trendIcon(pl.trend, 12) + ' ' + Utils.trendText(pl.trend) + '</span></td>' +
+              '<td><a href="' + pl.url + '" class="btn btn-sm btn-primary" data-platform="' + escapeHtml(pl.name) + '">' + Icon.externalLink(14) + ' 去购买</a></td>' +
+            '</tr>';
+        }).join('');
+        tableArea.innerHTML = '' +
+          '<div class="table-wrap"><table>' +
+            '<thead><tr><th>平台</th><th>当前价格</th><th>昨日价格</th><th>变动</th><th>趋势</th><th>操作</th></tr></thead>' +
+            '<tbody>' + rows + '</tbody>' +
+          '</table></div>';
+        tableArea.querySelectorAll('[data-platform]').forEach(function (btn) {
+          btn.addEventListener('click', function (e) { e.preventDefault(); Toast.info('跳转购买', '正在跳转至' + btn.dataset.platform + '平台...'); });
+        });
+      }
+
+      /* ---- 区域3 + 区域4: 价格走势图 + 统计卡片 ---- */
+      function renderPriceHistory(history, el) {
+        var dates = history.dates;
+        var platforms = history.platforms;
+        var stats = history.stats;
+        var legend = platforms.map(function (p) {
+          return '<div class="chart-legend-item"><span class="chart-legend-dot" style="background:' + p.color + '"></span>' + escapeHtml(p.name) + '</div>';
+        }).join('');
+        var chart = Utils.priceChart(dates, platforms, 720, 280);
+        var savings = stats.highest - stats.current;
+        el.innerHTML = '' +
+          '<div class="card mb-md">' +
+            '<div class="card-header">' +
+              '<div class="card-title" style="display:inline-flex;align-items:center;gap:6px">' + Icon.chartLine(18) + ' 30天价格走势</div>' +
+              '<div class="chart-legend">' + legend + '</div>' +
+            '</div>' +
+            '<div class="chart-container">' + chart + '</div>' +
+          '</div>' +
+          '<div class="grid grid-4">' +
+            statCard('var(--price-down-bg)', 'var(--price-down)', Icon.trendingDown(20), 'price-down', Utils.formatPrice(stats.lowest), '30天最优价') +
+            statCard('var(--price-up-bg)', 'var(--price-up)', Icon.trendingUp(20), 'price-up', Utils.formatPrice(stats.highest), '30天最高价') +
+            statCard('rgba(14,165,233,.1)', 'var(--info)', Icon.chartLine(20), '', Utils.formatPrice(stats.avg), '30天均价', 'var(--info)') +
+            statCard('var(--price-down-bg)', 'var(--price-down)', Icon.wallet(20), 'price-down', Utils.formatPrice(savings), '当前节省') +
+          '</div>';
+      }
+
+      /* ---- 区域7: 相关推荐商品卡片 ---- */
+      var RECOMMEND_REASONS = ['同价位更优', '你可能关注', '更划算选择'];
+      function renderRelatedCard(p, idx) {
+        var trend = lowestPlatform(p).trend;
+        var reason = RECOMMEND_REASONS[idx % RECOMMEND_REASONS.length];
+        return '' +
+          '<a href="detail.html?id=' + p.id + '" class="product-card">' +
+            '<div class="product-img">' + productPlaceholder(p.image, 120) + '</div>' +
+            '<div class="product-info">' +
+              '<div style="margin-bottom:6px"><span class="badge badge-brand" style="font-size:0.7rem;padding:2px 8px">' + Icon.sparkles(10) + ' ' + reason + '</span></div>' +
+              '<div class="product-name">' + escapeHtml(p.name) + '</div>' +
+              '<div class="flex" style="align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">' +
+                '<span class="product-price">' + Utils.formatPrice(p.lowest) + '</span>' +
+                '<span class="badge ' + trendBadgeClass(trend) + '">' + Utils.trendIcon(trend, 12) + ' ' + Utils.trendText(trend) + '</span>' +
+              '</div>' +
+              Utils.sparkline(p.sparkline, 80, 20, '#4f46e5') +
+            '</div>' +
+          '</a>';
+      }
+
+      /* ---- 骨架屏 ---- */
+      var headerSkeleton = '' +
+        '<div class="card">' +
+          '<div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap">' +
+            '<div class="skeleton" style="width:160px;height:160px;border-radius:var(--r-md);flex-shrink:0"></div>' +
+            '<div style="flex:1;min-width:240px">' +
+              '<div class="skeleton" style="width:90px;height:18px;border-radius:4px"></div>' +
+              '<div class="skeleton skeleton-text" style="width:70%;height:28px;margin-top:12px"></div>' +
+              '<div class="skeleton skeleton-text" style="width:50%"></div>' +
+              '<div class="skeleton" style="width:150px;height:30px;margin-top:14px;border-radius:var(--r-sm)"></div>' +
+              '<div style="display:flex;gap:8px;margin-top:18px">' +
+                '<div class="skeleton" style="width:104px;height:36px;border-radius:var(--r-sm)"></div>' +
+                '<div class="skeleton" style="width:80px;height:36px;border-radius:var(--r-sm)"></div>' +
+                '<div class="skeleton" style="width:130px;height:36px;border-radius:var(--r-sm)"></div>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+
+      var tableSkeleton = '' +
+        '<div class="table-wrap" style="padding:16px">' +
+          '<div class="skeleton skeleton-text w-80"></div>' +
+          '<div class="skeleton-row"><div class="skeleton skeleton-circle"></div><div style="flex:1"><div class="skeleton skeleton-text w-60"></div><div class="skeleton skeleton-text w-40"></div></div></div>' +
+          '<div class="skeleton-row"><div class="skeleton skeleton-circle"></div><div style="flex:1"><div class="skeleton skeleton-text w-60"></div><div class="skeleton skeleton-text w-40"></div></div></div>' +
+          '<div class="skeleton-row"><div class="skeleton skeleton-circle"></div><div style="flex:1"><div class="skeleton skeleton-text w-60"></div><div class="skeleton skeleton-text w-40"></div></div></div>' +
+        '</div>';
+
+      var priceSkeleton = '' +
+        '<div class="card">' +
+          '<div class="skeleton" style="width:200px;height:20px;margin-bottom:16px;border-radius:4px"></div>' +
+          '<div class="skeleton skeleton-block" style="height:280px"></div>' +
+        '</div>' +
+        '<div class="grid grid-4" style="margin-top:16px">' + Utils.skeletonStatCards(4) + '</div>';
+
+      var relatedSkeleton = Array.from({ length: 3 }, function () {
+        return '' +
+          '<div class="product-card">' +
+            '<div class="skeleton" style="width:100%;height:160px;border-radius:0"></div>' +
+            '<div class="product-info">' +
+              '<div class="skeleton skeleton-text w-80"></div>' +
+              '<div class="skeleton skeleton-text w-40" style="height:20px"></div>' +
+              '<div class="skeleton skeleton-text w-30"></div>' +
+            '</div>' +
+          '</div>';
+      }).join('');
+
+      /* ---- 加载商品详情 (骨架屏 → API → 渲染头部+对比表 → Toast重试) ---- */
+      function loadProductDetail() {
+        headerArea.innerHTML = headerSkeleton;
+        tableArea.innerHTML = tableSkeleton;
+        API.getProductDetail(productId).then(function (p) {
+          renderProductHeader(p);
+          renderCompareTable(p);
+          var ai = document.getElementById('alert-price');
+          if (ai && !ai.value) ai.value = p.lowest;
+        }).catch(function (err) {
+          headerArea.innerHTML = errState('商品信息加载失败');
+          tableArea.innerHTML = errState('价格对比加载失败');
+          Toast.error('加载失败', (err && err.message) || '数据获取异常', loadProductDetail);
+        });
+      }
+      loadProductDetail();
+
+      /* ---- 加载价格历史 (骨架屏 → API → 渲染SVG图表+统计 → Toast重试) ---- */
+      loadData(priceArea, function () { return API.getPriceHistory(productId); }, function (history, el) {
+        renderPriceHistory(history, el);
+      }, { skeleton: priceSkeleton, errorHtml: errState('价格走势加载失败') });
+
+      /* ---- 加载相关推荐 (骨架屏 → API → 渲染 → Toast重试) ---- */
+      loadData(relatedArea, function () { return API.getProducts(); }, function (products, el) {
+        var related = products.filter(function (p) { return p.id !== productId; }).slice(0, 3);
+        if (!related.length) related = products.slice(0, 3);
+        el.innerHTML = '<div class="grid grid-3">' + related.map(function (p, i) { return renderRelatedCard(p, i); }).join('') + '</div>';
+      }, { skeleton: '<div class="grid grid-3">' + relatedSkeleton + '</div>', errorHtml: errState('推荐商品加载失败') });
+
+      /* ---- 区域6: 价格预警表单提交 ---- */
+      function submitAlert() {
+        var input = document.getElementById('alert-price');
+        var price = Number(input.value);
+        if (!price || price <= 0) { Toast.warning('请输入有效价格', '目标价格需为大于0的数字'); return; }
+        var channels = ['站内消息'];
+        if (document.getElementById('ch-wechat').checked) channels.push('微信通知');
+        if (document.getElementById('ch-sms').checked) channels.push('短信通知');
+        var btn = document.getElementById('alert-submit');
+        var original = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> 提交中...';
+        API.setPriceAlert(productId, price).then(function () {
+          Toast.success('预警已设置', '当价格降至 ' + Utils.formatPrice(price) + ' 时将通过' + channels.join('、') + '通知您');
+        }).catch(function (err) {
+          Toast.error('预警设置失败', (err && err.message) || '请稍后重试', submitAlert);
+        }).then(function () {
+          btn.disabled = false;
+          btn.innerHTML = original;
+        });
+      }
+      document.getElementById('alert-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        submitAlert();
+      });
+    });
+  </script>
+</body>
+</html>

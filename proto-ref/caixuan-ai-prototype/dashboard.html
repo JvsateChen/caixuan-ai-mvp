@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>采选AI · 我的看板</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  /* ---- Tab Panels ---- */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ---- Platform dot ---- */
+  .platform-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block; margin-right: 5px; vertical-align: middle;
+  }
+
+  /* ---- Mini stat (weekly review) ---- */
+  .mini-stat { display: flex; flex-direction: column; gap: 4px; }
+  .mini-stat .mini-val { font-size: 1.2rem; font-weight: 700; font-family: var(--mono); }
+  .mini-stat .mini-label { font-size: 0.78rem; color: var(--muted); }
+
+  /* ---- Deal card ---- */
+  .deal-card {
+    background: var(--surface-2); border: 1px solid var(--rule);
+    border-radius: var(--r-md); padding: 16px;
+    transition: box-shadow .2s, border-color .2s;
+  }
+  .deal-card:hover { box-shadow: var(--shadow-md); border-color: var(--rule-2); }
+  .deal-original { color: var(--muted-2); text-decoration: line-through; font-size: 0.82rem; }
+
+  /* ---- Rainbow sweep for achieved table rows (柔和品牌色) ---- */
+  tr.rainbow-sweep, tr.rainbow-sweep:hover {
+    background: linear-gradient(90deg,
+      rgba(99,102,241,.06), rgba(129,140,248,.06), rgba(167,139,250,.06),
+      rgba(129,140,248,.06), rgba(99,102,241,.06));
+    background-size: 200% 100%;
+    animation: rainbow-flow 5s linear infinite;
+  }
+  tr.rainbow-sweep td { position: relative; }
+  tr.rainbow-sweep td:first-child::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, #6366f1, #818cf8, #a78bfa, #818cf8, #6366f1);
+    background-size: 200% 100%;
+    animation: rainbow-flow 5s linear infinite;
+    opacity: 0.7;
+  }
+
+  /* ---- Stat card unit suffix ---- */
+  .stat-unit { font-size: 0.85rem; color: var(--muted); font-weight: 500; margin-left: 2px; }
+
+  /* ---- Misc helpers ---- */
+  .align-center { align-items: center; }
+  .ai-ic { display: inline-flex; align-items: center; }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <!-- ============ Shared Topbar ============ -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <a href="index.html" class="logo">
+        <span class="logo-mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18l-2 12H5L3 3z"/><path d="M3 3l1.5-2h15L21 3"/><circle cx="9" cy="20" r="1"/><circle cx="17" cy="20" r="1"/></svg></span>
+        采选AI
+      </a>
+    </div>
+    <nav class="topbar-nav">
+      <a href="index.html" class="nav-link">AI比价</a>
+      <a href="dashboard.html" class="nav-link active">我的看板</a>
+      <a href="admin.html" class="nav-link">企业采购</a>
+    </nav>
+    <div class="topbar-right">
+      <button class="icon-btn" id="bellBtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="badge-dot"></span></button>
+      <a href="profile.html" class="avatar" style="text-decoration:none">CX</a>
+    </div>
+  </header>
+
+  <!-- ============ Main ============ -->
+  <main class="main-content">
+    <div class="layout-with-sidebar">
+      <!-- ---- Sidebar ---- -->
+      <aside class="sidebar">
+        <div class="sidebar-section">数据看板</div>
+        <div class="sidebar-item active" data-tab="targets"><span class="si-text">监控目标</span></div>
+        <div class="sidebar-item" data-tab="snapshots"><span class="si-text">价格快照</span></div>
+        <div class="sidebar-item" data-tab="purchases"><span class="si-text">采购记录</span></div>
+        <div class="sidebar-item" data-tab="review"><span class="si-text">周报复盘</span></div>
+        <hr class="divider">
+        <div class="sidebar-section">工具</div>
+        <a href="profile.html?tab=alert" class="sidebar-item" style="text-decoration:none;color:inherit"><span class="si-text">预警通知</span></a>
+        <a href="profile.html?tab=fav" class="sidebar-item" style="text-decoration:none;color:inherit"><span class="si-text">我的收藏</span></a>
+        <a href="profile.html?tab=info" class="sidebar-item" style="text-decoration:none;color:inherit"><span class="si-text">个人中心</span></a>
+      </aside>
+
+      <!-- ---- Content ---- -->
+      <div class="sidebar-content">
+        <!-- Region 1: Page header -->
+        <div class="section-header" style="margin-bottom: 24px;">
+          <div>
+            <h1 class="page-title">我的看板</h1>
+            <div class="page-subtitle" style="margin-bottom: 0;">商品监控目标、价格快照、采购记录与周报复盘</div>
+          </div>
+          <button class="btn btn-outline" id="exportBtn"><span data-icon="download" data-size="16"></span>导出报告</button>
+        </div>
+
+        <!-- Region 2: Overview stats -->
+        <div id="statsGrid" class="grid grid-4 mb-lg"></div>
+
+        <!-- Region 3: Tabs -->
+        <div class="tabs">
+          <div class="tab active" data-tab="targets">监控目标</div>
+          <div class="tab" data-tab="snapshots">价格快照</div>
+          <div class="tab" data-tab="purchases">采购记录</div>
+          <div class="tab" data-tab="review">周报复盘</div>
+        </div>
+
+        <!-- Tab panels -->
+        <div id="tab-targets" class="tab-panel active"></div>
+        <div id="tab-snapshots" class="tab-panel"></div>
+        <div id="tab-purchases" class="tab-panel"></div>
+        <div id="tab-review" class="tab-panel"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="app.js"></script>
+<script>
+/* ============================================================
+   dashboard.html · 我的看板 页面逻辑
+   骨架屏 → API → 渲染 → Toast重试
+   ============================================================ */
+
+/* ---- Render static icons (data-icon attribute) ---- */
+function renderDataIcons() {
+  document.querySelectorAll('[data-icon]').forEach(el => {
+    const name = el.dataset.icon;
+    const size = parseInt(el.dataset.size) || 16;
+    if (Icon[name]) el.innerHTML = Icon[name](size);
+  });
+}
+
+/* ---- Render sidebar icons ---- */
+function renderSidebarIcons() {
+  const iconMap = {
+    '监控目标': 'target', '价格快照': 'camera',
+    '采购记录': 'cart', '周报复盘': 'clipboard',
+    '预警通知': 'bell', '我的收藏': 'heart', '个人中心': 'user'
+  };
+  document.querySelectorAll('.sidebar-item').forEach(item => {
+    const labelEl = item.querySelector('.si-text');
+    if (!labelEl) return;
+    const iconKey = iconMap[labelEl.textContent.trim()];
+    if (iconKey) {
+      item.insertAdjacentHTML('afterbegin', Icon[iconKey](18));
+    }
+  });
+}
+
+/* ---- Data cache ---- */
+const cache = {};
+
+/* ============================================================
+   Region 2: Overview stat cards
+   ============================================================ */
+function renderStats(review, targets) {
+  const savingsUp = review.trend === 'up';
+  const grid = document.getElementById('statsGrid');
+  grid.innerHTML = `
+    <div class="stat-card">
+      <div class="stat-icon" style="background:rgba(79,70,229,.1);color:var(--brand-1)">${Icon.wallet(20)}</div>
+      <div class="stat-value">${Utils.formatPrice(review.totalSavings)}</div>
+      <div class="stat-label">累计节省</div>
+      <div class="stat-change">
+        <span class="badge ${savingsUp ? 'badge-success' : 'badge-danger'}">
+          ${savingsUp ? Icon.trendingUp(12) : Icon.trendingDown(12)}
+          较上周 ${savingsUp ? '+' : ''}${review.savingsChange}%
+        </span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:rgba(168,85,247,.1);color:#a855f7">${Icon.target(20)}</div>
+      <div class="stat-value">${targets.length}<span class="stat-unit">个</span></div>
+      <div class="stat-label">监控商品</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:rgba(5,150,105,.1);color:var(--price-down)">${Icon.cart(20)}</div>
+      <div class="stat-value">${review.ordersPlaced}<span class="stat-unit">笔</span></div>
+      <div class="stat-label">采购订单</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:rgba(217,119,6,.1);color:var(--price-flat)">${Icon.zap(20)}</div>
+      <div class="stat-value">${review.commissionEarned}<span class="stat-unit">元</span></div>
+      <div class="stat-label">佣金收入</div>
+    </div>`;
+}
+
+function loadStats() {
+  const el = document.getElementById('statsGrid');
+  el.innerHTML = Utils.skeletonStatCards(4);
+  Promise.all([API.getWeeklyReview(), API.getMonitoringTargets()])
+    .then(([review, targets]) => {
+      cache.review = review;
+      cache.targets = targets;
+      renderStats(review, targets);
+    })
+    .catch(err => {
+      el.innerHTML = `<div class="empty-state" style="grid-column:span 4">${Icon.alertTriangle(32)}<p>统计概览加载失败</p></div>`;
+      Toast.error('加载失败', err.message || '数据获取异常，请重试', loadStats);
+    });
+}
+
+/* ============================================================
+   Tab 1: 监控目标
+   ============================================================ */
+function renderTargets(data) {
+  const el = document.getElementById('tab-targets');
+  if (!data.length) {
+    el.innerHTML = `<div class="empty-state">${Icon.target(32)}<p>暂无监控目标</p></div>`;
+    return;
+  }
+  el.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>商品名称</th><th>目标价</th><th>当前价</th><th>平台</th>
+            <th>差距</th><th>状态</th><th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.map(t => {
+            const diff = t.currentPrice - t.targetPrice;
+            const achieved = t.status === 'achieved';
+            const pColor = PLATFORM_COLORS[t.platform] || '#64748b';
+            return `
+              <tr class="${achieved ? 'rainbow-sweep' : ''}">
+                <td style="font-weight:500">${t.productName}</td>
+                <td><span class="price price-sm">${Utils.formatPrice(t.targetPrice)}</span></td>
+                <td><span class="price price-sm">${Utils.formatPrice(t.currentPrice)}</span></td>
+                <td><span class="platform-dot" style="background:${pColor}"></span>${t.platform}</td>
+                <td><span class="price price-sm ${diff <= 0 ? 'price-down' : 'price-up'}">${diff > 0 ? '+' : ''}${Utils.formatPrice(diff)}</span></td>
+                <td>${achieved
+                  ? `<span class="badge badge-success">${Icon.checkCircle(12)} 已达标</span>`
+                  : `<span class="badge badge-warning">${Icon.clock(12)} 监控中</span>`}
+                </td>
+                <td><a class="btn btn-sm btn-outline" href="detail.html?id=${t.productId}">查看详情</a></td>
+              </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+loadData(
+  document.getElementById('tab-targets'),
+  () => API.getMonitoringTargets(),
+  (data) => { cache.targets = data; renderTargets(data); },
+  { skeleton: `<div class="card">${Utils.skeletonRow(6)}</div>` }
+);
+
+/* ============================================================
+   Tab 2: 价格快照
+   ============================================================ */
+function renderSnapshots(data) {
+  const el = document.getElementById('tab-snapshots');
+  if (!data.length) {
+    el.innerHTML = `<div class="empty-state">${Icon.camera(32)}<p>暂无价格快照</p></div>`;
+    return;
+  }
+  el.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>商品名称</th><th>平台</th><th>当前价格</th><th>昨日价格</th>
+            <th>变动</th><th>趋势</th><th>快照时间</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.map(s => {
+            const pColor = PLATFORM_COLORS[s.platform] || '#64748b';
+            const tCls = Utils.trendClass(s.trend);
+            const changeCls = tCls === 'down' ? 'price-down' : tCls === 'up' ? 'price-up' : 'price-flat';
+            const changeStr = (s.change > 0 ? '+' : '') + s.change;
+            return `
+              <tr>
+                <td style="font-weight:500">${s.productName}</td>
+                <td><span class="platform-dot" style="background:${pColor}"></span>${s.platform}</td>
+                <td><span class="price price-sm">${Utils.formatPrice(s.price)}</span></td>
+                <td><span class="price price-sm text-muted">${Utils.formatPrice(s.prevPrice)}</span></td>
+                <td><span class="price price-sm ${changeCls}">${changeStr}</span></td>
+                <td><span class="price-trend ${tCls}">${Utils.trendIcon(s.trend, 12)} ${Utils.trendText(s.trend)}</span></td>
+                <td class="text-sm text-muted">${s.snapshotAt}</td>
+              </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+loadData(
+  document.getElementById('tab-snapshots'),
+  () => API.getPriceSnapshots(),
+  (data) => { cache.snapshots = data; renderSnapshots(data); },
+  { skeleton: `<div class="card">${Utils.skeletonRow(8)}</div>` }
+);
+
+/* ============================================================
+   Tab 3: 采购记录
+   ============================================================ */
+function renderPurchases(data) {
+  const el = document.getElementById('tab-purchases');
+  if (!data.length) {
+    el.innerHTML = `<div class="empty-state">${Icon.cart(32)}<p>暂无采购记录</p></div>`;
+    return;
+  }
+  el.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>订单号</th><th>商品名称</th><th>平台</th><th>单价</th>
+            <th>数量</th><th>总价</th><th>佣金</th><th>状态</th><th>日期</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.map(p => {
+            const pColor = PLATFORM_COLORS[p.platform] || '#64748b';
+            const done = p.status === 'completed';
+            return `
+              <tr>
+                <td class="font-mono text-sm">${p.id}</td>
+                <td style="font-weight:500">${p.productName}</td>
+                <td><span class="platform-dot" style="background:${pColor}"></span>${p.platform}</td>
+                <td><span class="price price-sm">${Utils.formatPrice(p.price)}</span></td>
+                <td>${p.qty}</td>
+                <td><span class="price price-sm">${Utils.formatPrice(p.total)}</span></td>
+                <td><span class="price price-sm" style="color:var(--info)">${Utils.formatPrice(p.commission)}</span></td>
+                <td>${done
+                  ? `<span class="badge badge-success">${Icon.checkCircle(12)} 已完成</span>`
+                  : `<span class="badge badge-warning">${Icon.clock(12)} 待发货</span>`}
+                </td>
+                <td class="text-sm text-muted">${p.orderDate}</td>
+              </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+loadData(
+  document.getElementById('tab-purchases'),
+  () => API.getPurchaseRecords(),
+  (data) => { cache.purchases = data; renderPurchases(data); },
+  { skeleton: `<div class="card">${Utils.skeletonRow(5)}</div>` }
+);
+
+/* ============================================================
+   Tab 4: 周报复盘
+   ============================================================ */
+function renderReview(review) {
+  const el = document.getElementById('tab-review');
+  const trendUp = review.trend === 'up';
+  el.innerHTML = `
+    <div class="card mb-lg">
+      <div class="card-header">
+        <div>
+          <div class="card-title">本周复盘</div>
+          <div class="text-sm text-muted">${review.weekRange}</div>
+        </div>
+        <span class="badge ${trendUp ? 'badge-success' : 'badge-warning'}">
+          ${trendUp ? Icon.trendingUp(14) : Icon.trendingDown(14)}
+          较上周节省 ${trendUp ? '+' : ''}${review.savingsChange}%
+        </span>
+      </div>
+      <div class="grid grid-4">
+        <div class="mini-stat">
+          <div class="mini-label">节省金额</div>
+          <div class="mini-val" style="color:var(--price-down)">${Utils.formatPrice(review.totalSavings)}</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-label">比价次数</div>
+          <div class="mini-val">${review.itemsCompared}</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-label">下单数</div>
+          <div class="mini-val">${review.ordersPlaced}</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-label">佣金</div>
+          <div class="mini-val" style="color:var(--info)">${Utils.formatPrice(review.commissionEarned)}</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">最佳 Deal</div>
+        <div class="text-sm text-muted">本周最高性价比订单</div>
+      </div>
+      <div class="grid grid-3">
+        ${review.bestDeals.map(d => {
+          const pColor = PLATFORM_COLORS[d.platform] || '#64748b';
+          return `
+            <div class="deal-card">
+              <div style="font-weight:600;font-size:.9rem;margin-bottom:8px">${d.name}</div>
+              <div style="margin-bottom:10px">
+                <span class="chip"><span class="platform-dot" style="background:${pColor}"></span>${d.platform}</span>
+              </div>
+              <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:10px">
+                <span class="price price-md price-down">${Utils.formatPrice(d.finalPrice)}</span>
+                <span class="deal-original">${Utils.formatPrice(d.originalPrice)}</span>
+              </div>
+              <span class="badge badge-success">${Icon.arrowDown(12)} 节省 ${Utils.formatPrice(d.saved)}</span>
+            </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+loadData(
+  document.getElementById('tab-review'),
+  () => API.getWeeklyReview(),
+  (data) => { cache.review = data; renderReview(data); },
+  { skeleton: `${Utils.skeletonCard()}${Utils.skeletonCard()}` }
+);
+
+/* ============================================================
+   Tab switching (data preloaded, only toggle display)
+   ============================================================ */
+function switchTab(tabName) {
+  document.querySelectorAll('.tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.tab === tabName));
+  document.querySelectorAll('.tab-panel').forEach(p =>
+    p.classList.toggle('active', p.id === `tab-${tabName}`));
+  document.querySelectorAll('.sidebar-item[data-tab]').forEach(s =>
+    s.classList.toggle('active', s.dataset.tab === tabName));
+}
+
+document.querySelectorAll('.tab').forEach(t =>
+  t.addEventListener('click', () => switchTab(t.dataset.tab)));
+
+document.querySelectorAll('.sidebar-item[data-tab]').forEach(s =>
+  s.addEventListener('click', () => switchTab(s.dataset.tab)));
+
+/* ---- Export button ---- */
+document.getElementById('exportBtn').addEventListener('click', () => {
+  Toast.success('导出成功', '看板报告已生成，正在下载...');
+});
+
+/* ---- 通知铃铛 ---- */
+document.getElementById('bellBtn').addEventListener('click', () => {
+  Toast.info('通知中心', '您有 2 条价格预警提醒：iPhone 15 Pro、SK-II神仙水 已降至目标价');
+});
+
+/* ---- Init ---- */
+renderDataIcons();
+renderSidebarIcons();
+loadStats();
+</script>
+</body>
+</html>

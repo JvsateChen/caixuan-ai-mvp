@@ -11,8 +11,8 @@ import { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import {
-  LineChart,
-  Line,
+  ComposedChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -266,9 +266,9 @@ function ProductHeader({
             <Badge variant="brand">{product.category}</Badge>
             <Badge variant="muted">{product.brand}</Badge>
             {achieved && (
-              <Badge variant="success">
+              <span className="rainbow-badge">
                 <Sparkles size={12} /> 已达目标价
-              </Badge>
+              </span>
             )}
           </div>
           <h1 style={{ fontSize: '1.3rem', fontWeight: 700, marginBottom: 6 }}>
@@ -304,7 +304,7 @@ function ProductHeader({
   );
 }
 
-/** 价格走势图 (Recharts) */
+/** 价格走势图 (Recharts) — 三平台折线 + 面积填充 + 末端圆点 */
 function PriceChart({ history }: { history: PriceHistory }) {
   // 合并三平台数据按日期
   const chartData = useMemo(() => {
@@ -316,6 +316,8 @@ function PriceChart({ history }: { history: PriceHistory }) {
       return row;
     });
   }, [history]);
+
+  const lastIndex = chartData.length - 1;
 
   return (
     <>
@@ -329,10 +331,18 @@ function PriceChart({ history }: { history: PriceHistory }) {
       </div>
       <div className="chart-container" style={{ height: 320 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart
+          <ComposedChart
             data={chartData}
             margin={{ top: 10, right: 30, bottom: 5, left: 10 }}
           >
+            <defs>
+              {history.platforms.map((p) => (
+                <linearGradient key={p.name} id={`grad-${p.name}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={p.color} stopOpacity={0.25} />
+                  <stop offset="100%" stopColor={p.color} stopOpacity={0.02} />
+                </linearGradient>
+              ))}
+            </defs>
             <CartesianGrid strokeDasharray="2 3" stroke="#e2e8f0" />
             <XAxis
               dataKey="date"
@@ -355,32 +365,39 @@ function PriceChart({ history }: { history: PriceHistory }) {
               labelFormatter={(l) => `日期 ${l}`}
             />
             {history.platforms.map((p) => (
-              <Line
+              <Area
                 key={p.name}
                 type="monotone"
                 dataKey={p.name}
                 stroke={p.color}
                 strokeWidth={2}
-                dot={false}
+                fill={`url(#grad-${p.name})`}
+                // 末端圆点: 仅最后一个数据点绘制圆点
+                dot={(props: { cx?: number; cy?: number; index?: number }) => {
+                  if (props.index === lastIndex && props.cx != null && props.cy != null) {
+                    return (
+                      <circle
+                        cx={props.cx}
+                        cy={props.cy}
+                        r={4}
+                        fill={p.color}
+                        stroke="#fff"
+                        strokeWidth={1.5}
+                      />
+                    );
+                  }
+                  return false as unknown as React.ReactElement;
+                }}
                 activeDot={{ r: 4 }}
-                // 末端圆点
                 isAnimationActive={true}
                 animationDuration={600}
               />
             ))}
-          </LineChart>
+          </ComposedChart>
         </ResponsiveContainer>
       </div>
-      {/* 末端圆点 (Recharts 原生不支持, 用 SVG overlay) */}
-      <EndpointDots history={history} />
     </>
   );
-}
-
-/** 末端圆点 overlay */
-function EndpointDots({ history }: { history: PriceHistory }) {
-  // 此处简化: Recharts 自带 activeDot,末端圆点不重复绘制
-  return null;
 }
 
 /** 价格预警表单 */

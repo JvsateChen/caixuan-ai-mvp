@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>采选AI · 个人中心</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .profile-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--rule); margin-bottom: 20px; }
+    .profile-tab {
+      padding: 10px 16px; font-size: 0.92rem; font-weight: 500; color: var(--muted);
+      border-bottom: 2px solid transparent; cursor: pointer; transition: all .2s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .profile-tab:hover { color: var(--ink); }
+    .profile-tab.active { color: var(--brand-1); border-bottom-color: var(--brand-1); }
+    .profile-tab .tab-count { font-size: 0.75rem; background: var(--brand-soft); color: var(--brand-1); padding: 1px 6px; border-radius: 10px; }
+    .profile-pane { display: none; }
+    .profile-pane.active { display: block; }
+    .info-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--rule); }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { font-size: 0.9rem; color: var(--muted); }
+    .info-value { font-size: 0.9rem; color: var(--ink); font-weight: 500; }
+    .history-item { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--rule); border-radius: var(--r-md); margin-bottom: 10px; transition: all .2s; cursor: pointer; }
+    .history-item:hover { border-color: var(--brand-1); box-shadow: 0 2px 8px rgba(79,70,229,.08); }
+    .history-item .h-img { flex-shrink: 0; width: 48px; height: 48px; border-radius: var(--r-sm); overflow: hidden; line-height: 0; }
+    .history-item .h-info { flex: 1; min-width: 0; }
+    .history-item .h-name { font-size: 0.88rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .history-item .h-meta { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+    .history-item .h-price { font-size: 0.88rem; font-weight: 700; color: var(--price-down); font-family: var(--mono); }
+    .fav-item { position: relative; }
+    .fav-remove { position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; border-radius: 50%; border: none; background: var(--surface-3); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; }
+    .fav-remove:hover { background: var(--price-up-bg); color: var(--price-up); }
+    .alert-item { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--rule); border-radius: var(--r-md); margin-bottom: 10px; }
+    .alert-item .a-status { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .alert-item .a-status.achieved { background: var(--price-down); }
+    .alert-item .a-status.monitoring { background: var(--price-flat); }
+    .alert-toggle { width: 36px; height: 20px; border-radius: 10px; background: var(--surface-3); position: relative; cursor: pointer; transition: background .2s; flex-shrink: 0; }
+    .alert-toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--surface); box-shadow: 0 1px 3px rgba(0,0,0,.15); transition: transform .2s; }
+    .alert-toggle.on { background: var(--brand-1); }
+    .alert-toggle.on::after { transform: translateX(16px); }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- 共享 Topbar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <a href="index.html" class="logo">
+          <span class="logo-mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18l-2 12H5L3 3z"/><path d="M3 3l1.5-2h15L21 3"/><circle cx="9" cy="20" r="1"/><circle cx="17" cy="20" r="1"/></svg></span>
+          采选AI
+        </a>
+      </div>
+      <nav class="topbar-nav">
+        <a href="index.html" class="nav-link">AI比价</a>
+        <a href="dashboard.html" class="nav-link">我的看板</a>
+        <a href="admin.html" class="nav-link">企业采购</a>
+      </nav>
+      <div class="topbar-right">
+        <button class="icon-btn" id="bellBtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="badge-dot"></span></button>
+        <a href="profile.html" class="avatar" style="text-decoration:none">CX</a>
+      </div>
+    </header>
+
+    <main class="main-content" style="max-width:860px">
+      <!-- 用户信息头部 -->
+      <div class="card" style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+        <div class="avatar" style="width:56px;height:56px;font-size:1.2rem;flex-shrink:0">CX</div>
+        <div style="flex:1">
+          <div style="font-size:1.1rem;font-weight:600;margin-bottom:2px">采选用户</div>
+          <div class="text-muted text-sm">手机号 138****8888 · 注册于 2026-08-15</div>
+        </div>
+        <div style="display:flex;gap:12px;text-align:center">
+          <div><div style="font-size:1.2rem;font-weight:700;color:var(--brand-1)">23</div><div class="text-muted text-sm">比价次数</div></div>
+          <div><div style="font-size:1.2rem;font-weight:700;color:var(--price-down)">¥2,847</div><div class="text-muted text-sm">累计节省</div></div>
+        </div>
+      </div>
+
+      <!-- 子页面 Tab -->
+      <div class="profile-tabs">
+        <div class="profile-tab active" data-pane="history">比价历史 <span class="tab-count" id="historyCount">0</span></div>
+        <div class="profile-tab" data-pane="fav">收藏夹 <span class="tab-count" id="favCount">0</span></div>
+        <div class="profile-tab" data-pane="alert">价格预警 <span class="tab-count" id="alertCount">0</span></div>
+        <div class="profile-tab" data-pane="info">个人信息</div>
+      </div>
+
+      <!-- 比价历史 -->
+      <div class="profile-pane active" id="pane-history">
+        <div id="historyList"></div>
+      </div>
+
+      <!-- 收藏夹 -->
+      <div class="profile-pane" id="pane-fav">
+        <div id="favList"></div>
+      </div>
+
+      <!-- 价格预警 -->
+      <div class="profile-pane" id="pane-alert">
+        <div id="alertList"></div>
+      </div>
+
+      <!-- 个人信息 -->
+      <div class="profile-pane" id="pane-info">
+        <div class="card">
+          <div class="info-row">
+            <span class="info-label">头像</span>
+            <span class="info-value"><div class="avatar" style="width:32px;height:32px;font-size:0.75rem">CX</div></span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">昵称</span>
+            <span class="info-value">采选用户</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">手机号</span>
+            <span class="info-value">138****8888</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">微信绑定</span>
+            <span class="info-value"><span style="color:var(--price-down)">已绑定</span></span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">推送渠道</span>
+            <span class="info-value">站内消息 · 微信通知</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">注册时间</span>
+            <span class="info-value">2026-08-15</span>
+          </div>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:10px">
+          <button class="btn btn-outline" id="editProfileBtn">编辑资料</button>
+          <button class="btn btn-outline" style="color:var(--price-up);border-color:var(--price-up)" id="logoutBtn">退出登录</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+      /* ---- 工具方法 ---- */
+      function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+      }
+
+      /* ---- Tab 切换 ---- */
+      function activateTab(paneName) {
+        document.querySelectorAll('.profile-tab').forEach(function (t) { t.classList.remove('active'); });
+        document.querySelectorAll('.profile-pane').forEach(function (p) { p.classList.remove('active'); });
+        var targetTab = document.querySelector('.profile-tab[data-pane="' + paneName + '"]');
+        var targetPane = document.getElementById('pane-' + paneName);
+        if (targetTab) targetTab.classList.add('active');
+        if (targetPane) targetPane.classList.add('active');
+      }
+      document.querySelectorAll('.profile-tab').forEach(function (tab) {
+        tab.addEventListener('click', function () { activateTab(tab.dataset.pane); });
+      });
+
+      /* ---- 读取 URL ?tab= 参数自动激活对应Tab ---- */
+      var urlTab = new URLSearchParams(location.search).get('tab');
+      if (urlTab && ['history', 'fav', 'alert', 'info'].indexOf(urlTab) !== -1) {
+        activateTab(urlTab);
+      }
+
+      /* ---- 比价历史数据 ---- */
+      var historyData = [
+        { id: 'P001', name: 'Apple iPhone 15 Pro 256GB', image: 'phone', price: 7299, platform: '拼多多', time: '2026-09-10 14:30' },
+        { id: 'P002', name: '兰蔻小黑瓶精华 50ml', image: 'cosmetic', price: 1050, platform: '拼多多', time: '2026-09-09 20:15' },
+        { id: 'P003', name: 'Sony WH-1000XM5 降噪耳机', image: 'headphone', price: 1850, platform: '拼多多', time: '2026-09-08 11:00' },
+        { id: 'P004', name: '戴森Dyson V12无线吸尘器', image: 'appliance', price: 3599, platform: '拼多多', time: '2026-09-07 16:45' },
+        { id: 'P005', name: 'SK-II神仙水 230ml', image: 'cosmetic', price: 1550, platform: '淘宝', time: '2026-09-06 09:20' },
+        { id: 'P006', name: '小米14 Pro 16GB+512GB', image: 'phone', price: 4499, platform: '拼多多', time: '2026-09-05 18:00' },
+      ];
+      document.getElementById('historyCount').textContent = historyData.length;
+      document.getElementById('historyList').innerHTML = historyData.map(function (h) {
+        return '<a href="detail.html?id=' + h.id + '" class="history-item">' +
+          '<div class="h-img">' + productPlaceholder(h.image, 48) + '</div>' +
+          '<div class="h-info">' +
+            '<div class="h-name">' + escapeHtml(h.name) + '</div>' +
+            '<div class="h-meta">' + h.platform + ' · ' + h.time + '</div>' +
+          '</div>' +
+          '<div class="h-price">' + Utils.formatPrice(h.price) + '</div>' +
+        '</a>';
+      }).join('');
+
+      /* ---- 收藏夹数据 ---- */
+      var favData = [
+        { id: 'P001', name: 'Apple iPhone 15 Pro 256GB', image: 'phone', price: 7299 },
+        { id: 'P003', name: 'Sony WH-1000XM5 降噪耳机', image: 'headphone', price: 1850 },
+        { id: 'P005', name: 'SK-II神仙水 230ml', image: 'cosmetic', price: 1550 },
+      ];
+      document.getElementById('favCount').textContent = favData.length;
+      function renderFav() {
+        document.getElementById('favList').innerHTML = favData.map(function (f, i) {
+          return '<div class="history-item fav-item">' +
+            '<div class="h-img">' + productPlaceholder(f.image, 48) + '</div>' +
+            '<div class="h-info">' +
+              '<div class="h-name">' + escapeHtml(f.name) + '</div>' +
+              '<div class="h-meta">当前最优价</div>' +
+            '</div>' +
+            '<div class="h-price">' + Utils.formatPrice(f.price) + '</div>' +
+            '<button class="fav-remove" data-idx="' + i + '">' + Icon.x(12) + '</button>' +
+          '</div>';
+        }).join('');
+        document.getElementById('favList').querySelectorAll('.fav-remove').forEach(function (btn) {
+          btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var idx = Number(btn.dataset.idx);
+            favData.splice(idx, 1);
+            document.getElementById('favCount').textContent = favData.length;
+            renderFav();
+            Toast.success('已取消收藏', '商品已从收藏夹移除');
+          });
+        });
+      }
+      renderFav();
+
+      /* ---- 价格预警数据 ---- */
+      var alertData = [
+        { id: 'M01', productId: 'P001', name: 'Apple iPhone 15 Pro 256GB', targetPrice: 7300, currentPrice: 7299, platform: '拼多多', status: 'achieved', enabled: true },
+        { id: 'M03', productId: 'P003', name: 'Sony WH-1000XM5', targetPrice: 1800, currentPrice: 1850, platform: '拼多多', status: 'monitoring', enabled: true },
+        { id: 'M04', productId: 'P004', name: '戴森Dyson V12', targetPrice: 3500, currentPrice: 3599, platform: '拼多多', status: 'monitoring', enabled: false },
+      ];
+      document.getElementById('alertCount').textContent = alertData.length;
+      function renderAlerts() {
+        document.getElementById('alertList').innerHTML = alertData.map(function (a, i) {
+          var statusText = a.status === 'achieved' ? '已达成' : '监控中';
+          var statusColor = a.status === 'achieved' ? 'var(--price-down)' : 'var(--price-flat)';
+          return '<div class="alert-item">' +
+            '<div class="a-status ' + a.status + '"></div>' +
+            '<div style="flex:1;min-width:0">' +
+              '<a href="detail.html?id=' + a.productId + '" style="font-size:0.88rem;font-weight:500;color:var(--ink);text-decoration:none">' + escapeHtml(a.name) + '</a>' +
+              '<div class="text-muted text-sm" style="margin-top:2px">目标价 ' + Utils.formatPrice(a.targetPrice) + ' · 当前 ' + Utils.formatPrice(a.currentPrice) + ' · ' + a.platform + '</div>' +
+            '</div>' +
+            '<span class="badge ' + (a.status === 'achieved' ? 'badge-success' : 'badge-warning') + '" style="font-size:0.72rem">' + statusText + '</span>' +
+            '<div class="alert-toggle ' + (a.enabled ? 'on' : '') + '" data-idx="' + i + '"></div>' +
+          '</div>';
+        }).join('');
+        document.getElementById('alertList').querySelectorAll('.alert-toggle').forEach(function (tog) {
+          tog.addEventListener('click', function () {
+            var idx = Number(tog.dataset.idx);
+            alertData[idx].enabled = !alertData[idx].enabled;
+            tog.classList.toggle('on');
+            Toast.info(alertData[idx].enabled ? '预警已开启' : '预警已暂停', alertData[idx].name);
+          });
+        });
+      }
+      renderAlerts();
+
+      /* ---- 通知铃铛 ---- */
+      document.getElementById('bellBtn').addEventListener('click', function () {
+        Toast.info('通知中心', '您有 1 条价格预警提醒：iPhone 15 Pro 已降至目标价');
+      });
+
+      /* ---- 编辑资料 / 退出 ---- */
+      document.getElementById('editProfileBtn').addEventListener('click', function () {
+        Toast.info('编辑资料', '编辑功能开发中，敬请期待');
+      });
+      document.getElementById('logoutBtn').addEventListener('click', function () {
+        Toast.success('已退出登录', '即将返回登录页面');
+        setTimeout(function () { window.location.href = 'login.html'; }, 1000);
+      });
+    });
+  </script>
+</body>
+</html>

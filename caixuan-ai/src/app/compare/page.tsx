@@ -229,9 +229,9 @@ function CompareInner() {
                       </div>
                     </div>
                     {achieved && (
-                      <Badge variant="success">
+                      <span className="rainbow-badge">
                         <Sparkles size={12} /> 目标价达成
-                      </Badge>
+                      </span>
                     )}
                     <a
                       href={`/detail?id=${encodeURIComponent(p.id)}`}
